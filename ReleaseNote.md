@@ -20,3 +20,4 @@
 - Added formal deployment guidance for running the project through OpenClaw cron with a local `.env.market-briefing` file.
 - Added `requirements.in` and locked `requirements.txt` so local runs, cron, and GitHub Actions share the same dependency set.
 - Added `update_requirements.sh` and documented the recommended dependency upgrade workflow.
+- Added a `Makefile` and a requirements consistency check so CI can verify locked dependencies stay in sync.

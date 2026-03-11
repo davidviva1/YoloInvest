@@ -122,6 +122,15 @@ pip install -r requirements.txt
 - 再重新生成 `requirements.txt`
 - 不建议一次性大范围升级全部包
 
+### 常用命令
+
+```bash
+make deps         # 安装锁定依赖
+make update-deps  # 重新生成 requirements.txt
+make run          # 运行完整简报流程
+make ci-check     # 本地执行基础 CI 检查
+```
+
 ## 环境变量
 
 必需：
@@ -146,6 +155,8 @@ market-briefing/
 ├── main.py               # 主入口，串联抓数、分析、生成
 ├── run_briefing.sh       # 一键运行主流程并发送结果
 ├── update_requirements.sh # 从 requirements.in 生成锁定依赖
+├── check_requirements.py # 校验 requirements.txt 是否与 requirements.in 同步
+├── Makefile              # 常用开发命令入口
 ├── requirements.in       # 顶层运行依赖
 ├── requirements.txt      # 锁定后的完整运行依赖
 ├── config.py             # 全局配置（环境变量、标的、路径等）

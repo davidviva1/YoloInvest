@@ -8,6 +8,6 @@ cd "$SCRIPT_DIR"
 
 source venv/bin/activate
 python -m pip install --upgrade pip pip-tools
-pip-compile --output-file requirements.txt requirements.in
+pip-compile --quiet --no-header --strip-extras --output-file requirements.txt requirements.in
 
 echo "requirements.txt updated from requirements.in"

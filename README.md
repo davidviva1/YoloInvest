@@ -64,6 +64,18 @@
    - 手动执行一次 `./run_briefing.sh` 验证
    - 检查 Telegram 是否收到简报
 
+## Quick Start
+
+```bash
+cd ~/.openclaw/workspace/market-briefing
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.market-briefing.example .env.market-briefing
+# 编辑 .env.market-briefing 填入真实配置
+./run_briefing.sh
+```
+
 ## 手动运行
 
 ```bash
@@ -151,6 +163,7 @@ make ci-check     # 本地执行基础 CI 检查
 ```text
 market-briefing/
 ├── README.md             # 项目说明
+├── DEPLOYMENT.md         # OpenClaw cron 部署说明
 ├── ReleaseNote.md        # 发布记录与变更日志
 ├── main.py               # 主入口，串联抓数、分析、生成
 ├── run_briefing.sh       # 一键运行主流程并发送结果
@@ -217,6 +230,7 @@ market-briefing/
 - 文本简报链路已验证可用，Telegram 发送正常
 - 旧脚本仍保留为 wrapper，避免打断已有使用方式，但核心逻辑已集中到 `fetchers.py`、`analyzers.py`、`generators.py`
 - 正式部署建议始终通过 OpenClaw cron + `run_briefing.sh` 完成，不要混用 systemd
+- 部署细节已单独整理到 `DEPLOYMENT.md`
 
 ---
 

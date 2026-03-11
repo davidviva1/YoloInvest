@@ -21,3 +21,4 @@
 - Added `requirements.in` and locked `requirements.txt` so local runs, cron, and GitHub Actions share the same dependency set.
 - Added `update_requirements.sh` and documented the recommended dependency upgrade workflow.
 - Added a `Makefile` and a requirements consistency check so CI can verify locked dependencies stay in sync.
+- Added `DEPLOYMENT.md`, a Quick Start section, and `.env.market-briefing.example` for cleaner onboarding.

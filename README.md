@@ -25,6 +25,44 @@
 - 使用 **OpenClaw cron**
 - 不使用 systemd timer，避免和 OpenClaw gateway 冲突
 
+## OpenClaw cron 部署说明
+
+推荐的正式部署方式如下：
+
+1. 准备环境变量文件
+   - 在项目根目录创建 `market-briefing/.env.market-briefing`
+   - 写入以下变量：
+     - `TELEGRAM_BOT_TOKEN`
+     - `TELEGRAM_CHAT_ID`
+     - `LLM_API_KEY`
+     - 可选：`LLM_API_BASE`
+     - 可选：`LLM_MODEL`
+
+2. 使用统一入口脚本
+   - 由 `market-briefing/run_briefing.sh` 作为唯一执行入口
+   - 脚本会自动：
+     - 激活 `venv`
+     - 加载 `.env.market-briefing`
+     - 检查关键环境变量
+     - 运行主流程并发送 Telegram 简报
+
+3. 通过 OpenClaw cron 调度
+   - 推荐由 OpenClaw cron 在西雅图时间每天早上 6:00 触发
+   - 对应 UTC 时间通常为 `14:00`（冬令时）
+   - cron 任务只需要调用：
+     - `/home/ec2-user/.openclaw/workspace/market-briefing/run_briefing.sh`
+
+4. 避免 systemd 双重调度
+   - 不要再创建额外的 systemd service / timer 来跑这个项目
+   - 一台机器保持一个 OpenClaw gateway 即可
+   - 这样能避免 gateway 端口、状态目录和后台进程冲突
+
+5. 建议的运维检查项
+   - 确认 OpenClaw gateway 正常运行
+   - 确认 `.env.market-briefing` 文件存在且未被提交到 git
+   - 手动执行一次 `./run_briefing.sh` 验证
+   - 检查 Telegram 是否收到简报
+
 ## 手动运行
 
 ```bash
@@ -118,6 +156,7 @@ market-briefing/
 - `LYNAS.AX` 已从稀土 watchlist 中移除，因为 Yahoo Finance 返回不稳定
 - 文本简报链路已验证可用，Telegram 发送正常
 - 旧脚本仍保留为 wrapper，避免打断已有使用方式，但核心逻辑已集中到 `fetchers.py`、`analyzers.py`、`generators.py`
+- 正式部署建议始终通过 OpenClaw cron + `run_briefing.sh` 完成，不要混用 systemd
 
 ---
 

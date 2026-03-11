@@ -11,6 +11,11 @@
 - 📅 **财报日历**
 - 📊 **经济数据日历**
 - 📬 **自动发送到 Telegram 群**
+- ✅ **GitHub Actions 基础 CI 检查**
+
+## License
+
+本项目采用 `MIT` License。
 
 ## 自动运行
 

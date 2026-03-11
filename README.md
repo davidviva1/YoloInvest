@@ -90,11 +90,37 @@ export LLM_MODEL='claude-sonnet-4-5-20250929'
 推荐维护流程：
 
 1. 新增或移除顶层依赖时，先修改 `requirements.in`
-2. 再同步更新 `requirements.txt`
+2. 运行 `./update_requirements.sh` 重新生成锁定后的 `requirements.txt`
 3. 本地运行 `./run_briefing.sh` 验证
 4. GitHub Actions 会按 `requirements.txt` 做基础检查
 
 运行环境、cron、CI 都统一以 `requirements.txt` 为准。
+
+### 升级依赖
+
+推荐一次只升级一小部分依赖，并在每次升级后验证：
+
+1. 修改 `requirements.in` 中的顶层依赖约束
+2. 运行：
+
+```bash
+./update_requirements.sh
+```
+
+3. 重新安装并验证：
+
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+./run_briefing.sh
+```
+
+4. 确认 Telegram 收到简报、GitHub Actions 通过后再提交
+
+如果升级后出现依赖冲突：
+- 优先回退刚刚调整的顶层依赖版本
+- 再重新生成 `requirements.txt`
+- 不建议一次性大范围升级全部包
 
 ## 环境变量
 
@@ -119,6 +145,7 @@ market-briefing/
 ├── ReleaseNote.md        # 发布记录与变更日志
 ├── main.py               # 主入口，串联抓数、分析、生成
 ├── run_briefing.sh       # 一键运行主流程并发送结果
+├── update_requirements.sh # 从 requirements.in 生成锁定依赖
 ├── requirements.in       # 顶层运行依赖
 ├── requirements.txt      # 锁定后的完整运行依赖
 ├── config.py             # 全局配置（环境变量、标的、路径等）

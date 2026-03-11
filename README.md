@@ -42,6 +42,7 @@
    - 由 `market-briefing/run_briefing.sh` 作为唯一执行入口
    - 脚本会自动：
      - 激活 `venv`
+     - 按 `requirements.txt` 安装锁定依赖
      - 加载 `.env.market-briefing`
      - 检查关键环境变量
      - 运行主流程并发送 Telegram 简报
@@ -67,6 +68,9 @@
 
 ```bash
 cd ~/.openclaw/workspace/market-briefing
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 export TELEGRAM_BOT_TOKEN='...'
 export TELEGRAM_CHAT_ID='...'
 export LLM_API_KEY='...'
@@ -75,6 +79,22 @@ export LLM_API_BASE='https://api.tabcode.cc/claude/kiropower'
 export LLM_MODEL='claude-sonnet-4-5-20250929'
 ./run_briefing.sh
 ```
+
+## 依赖管理
+
+项目采用“稳定档”依赖管理方式：
+
+- `requirements.in` 维护顶层运行依赖
+- `requirements.txt` 锁定当前确认可用的完整依赖版本
+
+推荐维护流程：
+
+1. 新增或移除顶层依赖时，先修改 `requirements.in`
+2. 再同步更新 `requirements.txt`
+3. 本地运行 `./run_briefing.sh` 验证
+4. GitHub Actions 会按 `requirements.txt` 做基础检查
+
+运行环境、cron、CI 都统一以 `requirements.txt` 为准。
 
 ## 环境变量
 
@@ -99,6 +119,8 @@ market-briefing/
 ├── ReleaseNote.md        # 发布记录与变更日志
 ├── main.py               # 主入口，串联抓数、分析、生成
 ├── run_briefing.sh       # 一键运行主流程并发送结果
+├── requirements.in       # 顶层运行依赖
+├── requirements.txt      # 锁定后的完整运行依赖
 ├── config.py             # 全局配置（环境变量、标的、路径等）
 ├── models.py             # 数据模型定义
 ├── fetchers.py           # 统一数据抓取层

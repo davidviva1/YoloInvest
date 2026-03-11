@@ -1,0 +1,10 @@
+# Generated from top-level runtime dependencies.
+# Install with: pip install -r requirements.txt
+requests==2.32.5
+feedparser==6.0.12
+Pillow==12.1.1
+charset-normalizer==3.4.5
+certifi==2026.2.25
+idna==3.11
+urllib3==2.6.3
+sgmllib3k==1.0.0

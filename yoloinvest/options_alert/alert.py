@@ -14,6 +14,7 @@ from yoloinvest.config import REQUEST_TIMEOUT, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT
 
 ALERT_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS"]
 STATE_FILE = Path("/tmp/options_alert_state.json")
+HISTORY_FILE = Path("/tmp/options_alert_history.jsonl")
 TECH_NEWS_FEEDS = [
     "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,AVGO,MRVL,ALAB,NBIS&region=US&lang=en-US",
     "https://www.cnbc.com/id/19854910/device/rss/rss.html",
@@ -89,6 +90,10 @@ class AlertCandidate:
         else:
             self.severity = "low"
         return self.score
+
+    @property
+    def direction(self) -> str:
+        return "bullish" if self.day_change_pct >= 0 else "bearish"
 
 
 def fetch_symbol_snapshot(symbol: str) -> Optional[AlertCandidate]:
@@ -205,6 +210,27 @@ def save_state(alerts: List[AlertCandidate]) -> None:
     STATE_FILE.write_text(json.dumps(payload, indent=2))
 
 
+def append_history(alerts: List[AlertCandidate]) -> None:
+    if not alerts:
+        return
+    with HISTORY_FILE.open("a") as handle:
+        for alert in alerts:
+            record = {
+                "timestamp": datetime.now(UTC).isoformat(),
+                "symbol": alert.symbol,
+                "direction": alert.direction,
+                "price": alert.price,
+                "score": alert.score,
+                "severity": alert.severity,
+                "day_change_pct": alert.day_change_pct,
+                "intraday_move_pct": alert.intraday_move_pct,
+                "volume_ratio": alert.volume_ratio,
+                "trigger_reasons": alert.trigger_reasons or [],
+                "news_hits": alert.news_hits,
+            }
+            handle.write(json.dumps(record) + "\n")
+
+
 def is_escalated(alert: AlertCandidate, old: dict) -> bool:
     old_score = float(old.get("score", 0))
     old_severity = old.get("severity", "low")
@@ -232,7 +258,7 @@ def fresh_alerts(alerts: List[AlertCandidate], state: dict) -> List[AlertCandida
 
 def format_message(alerts: List[AlertCandidate]) -> str:
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    lines = [f"🚨 *盘中异动预警 V2.0* ({now})", "", "范围：高流动性大型科技股", ""]
+    lines = [f"🚨 *盘中异动预警 V2.1* ({now})", "", "范围：高流动性大型科技股", ""]
     for alert in sorted(alerts, key=lambda item: item.score, reverse=True):
         direction = "看涨异动" if alert.day_change_pct > 0 else "看跌异动"
         level = {"high": "HIGH", "medium": "MEDIUM", "low": "LOW"}.get(alert.severity, alert.severity.upper())
@@ -244,7 +270,7 @@ def format_message(alerts: List[AlertCandidate]) -> str:
         if alert.news_hits:
             lines.append(f"  新闻：{alert.news_hits[0]}")
     lines.append("")
-    lines.append("说明：V2.0 引入 score、high/medium/low 分级，以及只在新出现或明显增强时重复提醒。")
+    lines.append("说明：V2.1 在 V2.0 基础上增加 alert history，为后续质量统计和收盘复盘提供数据基础。")
     return "\n".join(lines)
 
 
@@ -267,6 +293,7 @@ def main() -> int:
     state = load_state()
     new_alerts = fresh_alerts(alerts, state)
     save_state(alerts)
+    append_history(new_alerts)
 
     if not new_alerts:
         print("No fresh alerts")

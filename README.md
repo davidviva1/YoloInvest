@@ -102,11 +102,15 @@ cd ~/.openclaw/workspace/YoloInvest
 ./venv/bin/python3 review_intraday_alerts.py
 ```
 
+History log used for quality tracking:
+- `/tmp/options_alert_history.jsonl`
+
 End-of-day report contents:
-- top intraday alert candidates
-- trigger reasons and severity snapshot
+- triggered alerts for the day
+- top intraday state snapshot
 - a dedicated close-performance pillar showing alert price vs latest close
-- summary stats for winners, losers, and average close performance
+- quality metrics including hit rate and average directional return
+- severity-level and score-bucket summaries
 
 ## Deployment
 

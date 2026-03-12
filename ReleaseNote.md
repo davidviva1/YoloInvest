@@ -31,3 +31,5 @@
 - Added `review_intraday_alerts.py` for quick inspection of the latest saved intraday alert state.
 - Expanded `review_intraday_alerts.py` into an end-of-day review report that includes a dedicated close-performance pillar for alert follow-through.
 - Documented intraday alert scoring, severity mapping, repeat-notification rules, and review workflow in the project docs.
+- Added persistent intraday alert history logging in `/tmp/options_alert_history.jsonl` for quality analysis.
+- Expanded the end-of-day review to report triggered alerts, directional close returns, hit rate, and score-bucket / severity summaries.

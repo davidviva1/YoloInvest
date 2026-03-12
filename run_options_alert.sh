@@ -26,5 +26,8 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
+# Override: send intraday alerts to the dedicated alert group
+export TELEGRAM_CHAT_ID="-5289147225"
+
 pip install -r requirements.txt >/tmp/yoloinvest-options-alert-pip.log 2>&1
 python3 -m yoloinvest.options_alert.alert

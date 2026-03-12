@@ -3,7 +3,7 @@
 
 set -e
 
-SCRIPT_DIR="$HOME/.openclaw/workspace/market-briefing"
+SCRIPT_DIR="$HOME/.openclaw/workspace/YoloInvest"
 
 cd "$SCRIPT_DIR"
 source venv/bin/activate

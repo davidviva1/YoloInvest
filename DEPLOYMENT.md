@@ -14,17 +14,17 @@ Why:
 1. Clone the repository
 2. Create a virtual environment
 3. Install locked dependencies from `requirements.txt`
-4. Create `.env.market-briefing` from `.env.market-briefing.example`
+4. Create `.env.YoloInvest` from `.env.YoloInvest.example`
 5. Fill in Telegram and LLM credentials
 6. Run `./run_briefing.sh` once manually
 7. Confirm Telegram delivery
 8. Configure OpenClaw cron to run:
-   - `/home/ec2-user/.openclaw/workspace/market-briefing/run_briefing.sh`
+   - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh`
 
 ## Environment file
 
 Expected file:
-- `.env.market-briefing`
+- `.env.YoloInvest`
 
 Expected keys:
 - `TELEGRAM_BOT_TOKEN`

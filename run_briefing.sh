@@ -3,7 +3,7 @@
 
 set -e
 
-SCRIPT_DIR="$HOME/.openclaw/workspace/market-briefing"
+SCRIPT_DIR="$HOME/.openclaw/workspace/YoloInvest"
 
 cd "$SCRIPT_DIR"
 
@@ -11,7 +11,7 @@ cd "$SCRIPT_DIR"
 source venv/bin/activate
 
 # 安装锁定依赖，确保手动运行和 cron 使用同一套环境
-pip install -r requirements.txt >/tmp/market-briefing-pip.log 2>&1
+pip install -r requirements.txt >/tmp/yoloinvest-market-briefing-pip.log 2>&1
 
 # 加载本地环境变量文件，方便 cron/后台任务复用同一套配置
 if [ -f "$SCRIPT_DIR/.env.market-briefing" ]; then

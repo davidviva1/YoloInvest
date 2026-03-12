@@ -30,7 +30,7 @@
 推荐的正式部署方式如下：
 
 1. 准备环境变量文件
-   - 在项目根目录创建 `market-briefing/.env.market-briefing`
+   - 在项目根目录创建 `YoloInvest/.env.YoloInvest`
    - 写入以下变量：
      - `TELEGRAM_BOT_TOKEN`
      - `TELEGRAM_CHAT_ID`
@@ -39,11 +39,11 @@
      - 可选：`LLM_MODEL`
 
 2. 使用统一入口脚本
-   - 由 `market-briefing/run_briefing.sh` 作为唯一执行入口
+   - 由 `YoloInvest/run_briefing.sh` 作为唯一执行入口
    - 脚本会自动：
      - 激活 `venv`
      - 按 `requirements.txt` 安装锁定依赖
-     - 加载 `.env.market-briefing`
+     - 加载 `.env.YoloInvest`
      - 检查关键环境变量
      - 运行主流程并发送 Telegram 简报
 
@@ -51,7 +51,7 @@
    - 推荐由 OpenClaw cron 在西雅图时间每天早上 6:00 触发
    - 对应 UTC 时间通常为 `14:00`（冬令时）
    - cron 任务只需要调用：
-     - `/home/ec2-user/.openclaw/workspace/market-briefing/run_briefing.sh`
+     - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh`
 
 4. 避免 systemd 双重调度
    - 不要再创建额外的 systemd service / timer 来跑这个项目
@@ -60,26 +60,26 @@
 
 5. 建议的运维检查项
    - 确认 OpenClaw gateway 正常运行
-   - 确认 `.env.market-briefing` 文件存在且未被提交到 git
+   - 确认 `.env.YoloInvest` 文件存在且未被提交到 git
    - 手动执行一次 `./run_briefing.sh` 验证
    - 检查 Telegram 是否收到简报
 
 ## Quick Start
 
 ```bash
-cd ~/.openclaw/workspace/market-briefing
+cd ~/.openclaw/workspace/YoloInvest
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.market-briefing.example .env.market-briefing
-# 编辑 .env.market-briefing 填入真实配置
+cp .env.YoloInvest.example .env.YoloInvest
+# 编辑 .env.YoloInvest 填入真实配置
 ./run_briefing.sh
 ```
 
 ## 手动运行
 
 ```bash
-cd ~/.openclaw/workspace/market-briefing
+cd ~/.openclaw/workspace/YoloInvest
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -161,7 +161,7 @@ make ci-check     # 本地执行基础 CI 检查
 ## 项目结构
 
 ```text
-market-briefing/
+YoloInvest/
 ├── README.md             # 项目说明
 ├── DEPLOYMENT.md         # OpenClaw cron 部署说明
 ├── ReleaseNote.md        # 发布记录与变更日志
@@ -246,7 +246,7 @@ V1 目标：
 手动运行：
 
 ```bash
-cd ~/.openclaw/workspace/market-briefing
+cd ~/.openclaw/workspace/YoloInvest
 source venv/bin/activate
 python options_alert.py
 ```

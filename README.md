@@ -167,6 +167,7 @@ market-briefing/
 ├── ReleaseNote.md        # 发布记录与变更日志
 ├── main.py               # 主入口，串联抓数、分析、生成
 ├── run_briefing.sh       # 一键运行主流程并发送结果
+├── run_options_alert.sh  # 盘中异动预警运行脚本
 ├── update_requirements.sh # 从 requirements.in 生成锁定依赖
 ├── check_requirements.py # 校验 requirements.txt 是否与 requirements.in 同步
 ├── Makefile              # 常用开发命令入口
@@ -233,6 +234,9 @@ V1 目标：
 - `NVDA`
 - `TSLA`
 - `AVGO`
+- `MRVL`
+- `ALAB`
+- `NBIS`
 
 当前规则：
 - 日涨跌幅绝对值 >= `2%`
@@ -247,9 +251,15 @@ source venv/bin/activate
 python options_alert.py
 ```
 
+定时运行：
+- 通过 OpenClaw cron 每 10 分钟扫描一次
+- 使用脚本：`run_options_alert.sh`
+- 计划窗口：美股常规交易时段（工作日盘中）
+
 说明：
 - 这还不是真实期权流扫描
-- V1 是为了先把盘中异动 alert 链路搭起来
+- V1.1 已经叠加新闻确认
+- 先把盘中异动 alert 链路搭起来
 - 后续可接入真正的 options flow 数据源替换信号层
 
 ## 输出文件

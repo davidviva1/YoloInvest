@@ -32,7 +32,7 @@ Why:
 
 Expected schedules:
 - Daily briefing: `0 6 * * *` in `America/Los_Angeles`
-- Intraday alerts: `*/10 6-13 * * 1-5` in `America/Los_Angeles`
+- Intraday alerts: `*/10 30-59 6 * * 1-5` and `*/10 7-12 * * 1-5` and `0 13 * * 1-5` equivalent coverage within 6:30 AM-1:00 PM America/Los_Angeles
 
 ## Environment File
 

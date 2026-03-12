@@ -31,11 +31,64 @@ class AlertCandidate:
     avg_volume: int
     market_state: str
     news_hits: List[str]
+    score: float = 0.0
+    severity: str = "low"
+    trigger_reasons: List[str] | None = None
 
-    @property
-    def score(self) -> float:
-        news_bonus = min(len(self.news_hits), 3) * 0.8
-        return abs(self.day_change_pct) * 0.5 + abs(self.intraday_move_pct) * 0.3 + self.volume_ratio * 0.2 + news_bonus
+    def compute_score(self) -> float:
+        score = 0.0
+        reasons: List[str] = []
+
+        abs_day = abs(self.day_change_pct)
+        abs_intraday = abs(self.intraday_move_pct)
+
+        if abs_day >= 5:
+            score += 4.0
+            reasons.append(f"day move {self.day_change_pct:+.2f}%")
+        elif abs_day >= 3.5:
+            score += 3.0
+            reasons.append(f"day move {self.day_change_pct:+.2f}%")
+        elif abs_day >= 2.0:
+            score += 2.0
+            reasons.append(f"day move {self.day_change_pct:+.2f}%")
+
+        if abs_intraday >= 3:
+            score += 3.0
+            reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
+        elif abs_intraday >= 2:
+            score += 2.0
+            reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
+        elif abs_intraday >= 1:
+            score += 1.0
+            reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
+
+        if self.volume_ratio >= 3:
+            score += 3.0
+            reasons.append(f"volume {self.volume_ratio:.2f}x")
+        elif self.volume_ratio >= 2:
+            score += 2.0
+            reasons.append(f"volume {self.volume_ratio:.2f}x")
+        elif self.volume_ratio >= 1.2:
+            score += 1.0
+            reasons.append(f"volume {self.volume_ratio:.2f}x")
+
+        news_count = min(len(self.news_hits), 3)
+        if news_count:
+            score += news_count * 1.0
+            reasons.append(f"news x{news_count}")
+
+        if self.market_state.upper() in {"REGULAR", "POSTPOST", "POST"}:
+            score += 0.5
+
+        self.score = round(score, 2)
+        self.trigger_reasons = reasons
+        if self.score >= 8:
+            self.severity = "high"
+        elif self.score >= 5:
+            self.severity = "medium"
+        else:
+            self.severity = "low"
+        return self.score
 
 
 def fetch_symbol_snapshot(symbol: str) -> Optional[AlertCandidate]:
@@ -112,22 +165,25 @@ def fetch_news_hits(symbols: List[str]) -> Dict[str, List[str]]:
 def attach_news(candidates: List[AlertCandidate], news_hits: Dict[str, List[str]]) -> List[AlertCandidate]:
     for candidate in candidates:
         candidate.news_hits = news_hits.get(candidate.symbol, [])[:3]
+        candidate.compute_score()
     return candidates
 
 
 def filter_alerts(candidates: List[AlertCandidate]) -> List[AlertCandidate]:
     filtered: List[AlertCandidate] = []
     for candidate in candidates:
-        if abs(candidate.day_change_pct) < 2.0:
+        abs_day = abs(candidate.day_change_pct)
+        abs_intraday = abs(candidate.intraday_move_pct)
+        if abs_day < 2.0:
             continue
-        if abs(candidate.intraday_move_pct) < 1.0:
+        if abs_intraday < 1.0:
             continue
         if candidate.volume_ratio < 1.2:
             continue
-        if candidate.news_hits:
+        if candidate.severity in {"high", "medium"}:
             filtered.append(candidate)
             continue
-        if abs(candidate.day_change_pct) >= 3.5 and candidate.volume_ratio >= 1.8:
+        if candidate.news_hits and candidate.score >= 4.0:
             filtered.append(candidate)
     return filtered
 
@@ -149,6 +205,18 @@ def save_state(alerts: List[AlertCandidate]) -> None:
     STATE_FILE.write_text(json.dumps(payload, indent=2))
 
 
+def is_escalated(alert: AlertCandidate, old: dict) -> bool:
+    old_score = float(old.get("score", 0))
+    old_severity = old.get("severity", "low")
+    severity_rank = {"low": 1, "medium": 2, "high": 3}
+
+    if severity_rank.get(alert.severity, 1) > severity_rank.get(old_severity, 1):
+        return True
+    if alert.score >= old_score + 2.0:
+        return True
+    return False
+
+
 def fresh_alerts(alerts: List[AlertCandidate], state: dict) -> List[AlertCandidate]:
     previous = state.get("alerts", {})
     result: List[AlertCandidate] = []
@@ -157,25 +225,26 @@ def fresh_alerts(alerts: List[AlertCandidate], state: dict) -> List[AlertCandida
         if not old:
             result.append(alert)
             continue
-        old_score = abs(old.get("day_change_pct", 0)) + abs(old.get("intraday_move_pct", 0)) + old.get("volume_ratio", 0) + len(old.get("news_hits", []))
-        new_score = abs(alert.day_change_pct) + abs(alert.intraday_move_pct) + alert.volume_ratio + len(alert.news_hits)
-        if new_score >= old_score + 1.5:
+        if is_escalated(alert, old):
             result.append(alert)
     return result
 
 
 def format_message(alerts: List[AlertCandidate]) -> str:
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    lines = [f"🚨 *盘中异动预警 V1.1* ({now})", "", "范围：高流动性大型科技股", ""]
+    lines = [f"🚨 *盘中异动预警 V2.0* ({now})", "", "范围：高流动性大型科技股", ""]
     for alert in sorted(alerts, key=lambda item: item.score, reverse=True):
         direction = "看涨异动" if alert.day_change_pct > 0 else "看跌异动"
+        level = {"high": "HIGH", "medium": "MEDIUM", "low": "LOW"}.get(alert.severity, alert.severity.upper())
         lines.append(
-            f"• *{alert.symbol}* {direction} | ${alert.price:.2f} | 日内 {alert.day_change_pct:+.2f}% | 开盘后 {alert.intraday_move_pct:+.2f}% | 量比 {alert.volume_ratio:.2f}x"
+            f"• *{alert.symbol}* [{level}] {direction} | score {alert.score:.1f} | ${alert.price:.2f} | 日内 {alert.day_change_pct:+.2f}% | 开盘后 {alert.intraday_move_pct:+.2f}% | 量比 {alert.volume_ratio:.2f}x"
         )
+        if alert.trigger_reasons:
+            lines.append(f"  触发：{', '.join(alert.trigger_reasons[:3])}")
         if alert.news_hits:
             lines.append(f"  新闻：{alert.news_hits[0]}")
     lines.append("")
-    lines.append("说明：V1.1 在价格/量能代理信号上叠加相关新闻确认；后续可接入真实期权流数据。")
+    lines.append("说明：V2.0 引入 score、high/medium/low 分级，以及只在新出现或明显增强时重复提醒。")
     return "\n".join(lines)
 
 
@@ -207,3 +276,7 @@ def main() -> int:
     send_telegram(message)
     print(message)
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -13,8 +13,9 @@ YoloInvest is a modular market intelligence project with two primary apps:
 
 - `yoloinvest.options_alert`
   - Runs intraday scans on selected large-cap tech names
+  - Uses a lightweight score model with severity levels
   - Uses price/volume plus lightweight news confirmation
-  - Sends Telegram alerts only when fresh signals appear
+  - Sends Telegram alerts only when signals are new or materially stronger
 
 ## Quick Start
 
@@ -74,7 +75,7 @@ Canonical deployment model:
 
 Current scheduled jobs:
 - Daily briefing: 6:00 AM America/Los_Angeles
-- Intraday alerts: every 10 minutes during weekday market hours
+- Intraday alerts: every 10 minutes during 6:30 AM-1:00 PM America/Los_Angeles on weekdays
 
 Detailed deployment notes are in `DEPLOYMENT.md`.
 

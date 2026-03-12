@@ -17,7 +17,7 @@ fi
 
 required_vars=(
   TELEGRAM_BOT_TOKEN
-  TELEGRAM_CHAT_ID
+  TELEGRAM_CHAT_ID_MARKET_BRIEFING
   LLM_API_KEY
 )
 
@@ -27,6 +27,8 @@ for var_name in "${required_vars[@]}"; do
     exit 1
   fi
 done
+
+export TELEGRAM_CHAT_ID="$TELEGRAM_CHAT_ID_MARKET_BRIEFING"
 
 python3 -m yoloinvest.market_briefing.app
 python3 - <<'PY'

@@ -178,6 +178,7 @@ market-briefing/
 ├── analyzers.py          # AI 分析层（Claude 兼容接口）
 ├── generators.py         # 文本简报生成器
 ├── sender.py             # Telegram 发送器
+├── options_alert.py      # V1 盘中异动预警脚本（大型科技股）
 ├── fetch_data.py         # 抓取市场数据的轻量包装脚本
 ├── fetch_news.py         # 抓取新闻的独立脚本
 ├── fetch_earnings.py     # 抓取财报数据的独立脚本
@@ -212,6 +213,44 @@ market-briefing/
 
 - Base URL: `https://api.tabcode.cc/claude/kiropower`
 - Messages URL: `https://api.tabcode.cc/claude/kiropower/v1/messages`
+
+## 盘中异动预警 V1
+
+新增脚本：`options_alert.py`
+
+V1 目标：
+- 只看高流动性大型科技股
+- 先用现货价格/量能做代理信号
+- 识别盘中异常强弱和放量
+- 通过 Telegram 推送新出现或明显增强的异动
+
+当前监控标的：
+- `AAPL`
+- `MSFT`
+- `GOOGL`
+- `AMZN`
+- `META`
+- `NVDA`
+- `TSLA`
+- `AVGO`
+
+当前规则：
+- 日涨跌幅绝对值 >= `2%`
+- 相对开盘涨跌幅绝对值 >= `1%`
+- 成交量 / 3个月平均成交量 >= `1.2x`
+
+手动运行：
+
+```bash
+cd ~/.openclaw/workspace/market-briefing
+source venv/bin/activate
+python options_alert.py
+```
+
+说明：
+- 这还不是真实期权流扫描
+- V1 是为了先把盘中异动 alert 链路搭起来
+- 后续可接入真正的 options flow 数据源替换信号层
 
 ## 输出文件
 

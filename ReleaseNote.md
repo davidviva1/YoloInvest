@@ -22,3 +22,4 @@
 - Added `update_requirements.sh` and documented the recommended dependency upgrade workflow.
 - Added a `Makefile` and a requirements consistency check so CI can verify locked dependencies stay in sync.
 - Added `DEPLOYMENT.md`, a Quick Start section, and `.env.market-briefing.example` for cleaner onboarding.
+- Added `options_alert.py` as a V1 intraday alert script for highly liquid mega-cap tech stocks.

@@ -19,3 +19,4 @@
 - Upgraded intraday alerting to V2.0 with score-based ranking, severity levels, and stronger de-duplication rules.
 - Separated alert delivery to the dedicated Telegram alert group via `TELEGRAM_CHAT_ID_OPTIONS_ALERT`.
 - Planned intraday schedule tightened to regular-session hours around 6:30 AM-1:00 PM America/Los_Angeles.
+- Added `review_intraday_alerts.py` for quick inspection of the latest saved intraday alert state.

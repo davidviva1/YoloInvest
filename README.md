@@ -65,6 +65,37 @@ Direct module entrypoints:
 ./venv/bin/python3 -m yoloinvest.options_alert.alert
 ```
 
+## Intraday Alert Rules (V2.0)
+
+The `options_alert` module now uses a lightweight score model instead of a single hard trigger.
+
+Signal inputs:
+- absolute day move
+- move versus market open
+- relative volume versus average volume
+- lightweight news confirmation
+- market session state
+
+Severity mapping:
+- `high`: score >= 8
+- `medium`: score >= 5 and < 8
+- `low`: score < 5
+
+Push rules:
+- send immediately when a symbol becomes a new qualifying alert
+- send again only when severity upgrades or score increases materially
+- suppress repeat noise when the signal is unchanged
+
+Current alert session window:
+- 6:30 AM-1:00 PM America/Los_Angeles on weekdays
+
+Quick review command:
+
+```bash
+cd ~/.openclaw/workspace/YoloInvest
+./venv/bin/python3 review_intraday_alerts.py
+```
+
 ## Deployment
 
 Canonical deployment model:

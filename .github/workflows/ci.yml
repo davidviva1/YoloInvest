@@ -30,19 +30,18 @@ jobs:
           venv/bin/python check_requirements.py
 
       - name: Compile Python files
-        run: python -m compileall .
+        run: python -m compileall yoloinvest check_requirements.py
 
       - name: Import core modules
         run: |
           python - <<'PY'
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, str(Path('.').resolve()))
-          import config
-          import models
-          import fetchers
-          import analyzers
-          import generators
-          import sender
+          import yoloinvest.config
+          import yoloinvest.common.models
+          import yoloinvest.common.fetchers
+          import yoloinvest.common.sender
+          import yoloinvest.market_briefing.app
+          import yoloinvest.market_briefing.analyzers
+          import yoloinvest.market_briefing.generators
+          import yoloinvest.options_alert.alert
           print('Core modules imported successfully')
           PY

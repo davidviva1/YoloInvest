@@ -33,7 +33,8 @@ cp .env.market-briefing.example .env.market-briefing
 
 Required variables in `.env.market-briefing`:
 - `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_CHAT_ID_MARKET_BRIEFING`
+- `TELEGRAM_CHAT_ID_OPTIONS_ALERT`
 - `LLM_API_KEY`
 
 Optional:
@@ -133,8 +134,9 @@ Useful commands:
 
 ```bash
 make deps
-make update-deps
 make run
+make alert
+make update-deps
 make ci-check
 ```
 
@@ -172,6 +174,11 @@ YoloInvest/
 │       └── alert.py
 └── fonts/
 ```
+
+## Release Status
+
+- Current stable release tag: `v2.1.0`
+- Historical tag from the old layout: `v1.0.0`
 
 ## Notes
 

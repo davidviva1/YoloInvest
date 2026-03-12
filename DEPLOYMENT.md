@@ -44,10 +44,16 @@ Expected file:
 
 Expected keys:
 - `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_CHAT_ID_MARKET_BRIEFING`
+- `TELEGRAM_CHAT_ID_OPTIONS_ALERT`
 - `LLM_API_KEY`
 - optional: `LLM_API_BASE`
 - optional: `LLM_MODEL`
+
+## Release Status
+
+- Current stable release tag: `v2.1.0`
+- Daily briefing, intraday alerting, and end-of-day review are all included in this release line.
 
 ## Operational Notes
 

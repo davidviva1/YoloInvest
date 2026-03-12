@@ -2,6 +2,9 @@
 
 ## Overview
 
+Release line: `v2.1.0`
+
+
 YoloInvest has two production workflows:
 - `market_briefing`: daily market briefing generation and Telegram delivery
 - `options_alert`: intraday alert scanning, alert delivery, and end-of-day review

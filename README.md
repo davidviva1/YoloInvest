@@ -96,6 +96,12 @@ cd ~/.openclaw/workspace/YoloInvest
 ./venv/bin/python3 review_intraday_alerts.py
 ```
 
+End-of-day report contents:
+- top intraday alert candidates
+- trigger reasons and severity snapshot
+- a dedicated close-performance pillar showing alert price vs latest close
+- summary stats for winners, losers, and average close performance
+
 ## Deployment
 
 Canonical deployment model:
@@ -107,6 +113,7 @@ Canonical deployment model:
 Current scheduled jobs:
 - Daily briefing: 6:00 AM America/Los_Angeles
 - Intraday alerts: every 10 minutes during 6:30 AM-1:00 PM America/Los_Angeles on weekdays
+- End-of-day intraday review: 1:10 PM America/Los_Angeles on weekdays
 
 Detailed deployment notes are in `DEPLOYMENT.md`.
 

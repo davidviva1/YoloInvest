@@ -27,12 +27,15 @@ Why:
   - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh`
 - Intraday alerts:
   - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_options_alert.sh`
+- End-of-day intraday review:
+  - `/home/ec2-user/.openclaw/workspace/YoloInvest/venv/bin/python3 /home/ec2-user/.openclaw/workspace/YoloInvest/review_intraday_alerts.py`
 
 ## OpenClaw Cron Jobs
 
 Expected schedules:
 - Daily briefing: `0 6 * * *` in `America/Los_Angeles`
 - Intraday alerts: `*/10 30-59 6 * * 1-5` and `*/10 7-12 * * 1-5` and `0 13 * * 1-5` equivalent coverage within 6:30 AM-1:00 PM America/Los_Angeles
+- End-of-day review: `10 13 * * 1-5` in `America/Los_Angeles`
 
 ## Environment File
 

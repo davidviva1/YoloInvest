@@ -26,5 +26,5 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
-pip install -r requirements.txt >/tmp/options-alert-pip.log 2>&1
-python options_alert.py
+pip install -r requirements.txt >/tmp/yoloinvest-options-alert-pip.log 2>&1
+python3 -m yoloinvest.options_alert.alert

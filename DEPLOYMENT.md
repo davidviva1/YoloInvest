@@ -1,30 +1,43 @@
 # Deployment
 
-## Recommended runtime model
+## Recommended Runtime Model
 
-This project is designed to run through OpenClaw cron instead of systemd timers.
+YoloInvest is designed to run through OpenClaw cron instead of systemd timers.
 
 Why:
-- Avoids multiple gateway-like background services on the same host
-- Keeps scheduling inside the same OpenClaw runtime
-- Makes manual runs, cron runs, and environment loading use the same entrypoint
+- avoids multiple gateway-like background services on one host
+- keeps scheduling in the same OpenClaw runtime
+- keeps manual runs and scheduled runs on the same shell entrypoints
 
-## Deployment steps
+## Local Deployment Steps
 
 1. Clone the repository
 2. Create a virtual environment
 3. Install locked dependencies from `requirements.txt`
-4. Create `.env.YoloInvest` from `.env.YoloInvest.example`
+4. Create `.env.market-briefing` from `.env.market-briefing.example`
 5. Fill in Telegram and LLM credentials
-6. Run `./run_briefing.sh` once manually
-7. Confirm Telegram delivery
-8. Configure OpenClaw cron to run:
-   - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh`
+6. Run `./run_briefing.sh` manually once
+7. Run `./run_options_alert.sh` manually once
+8. Confirm Telegram delivery
+9. Configure OpenClaw cron jobs pointing to the shell entrypoints
 
-## Environment file
+## Canonical Entrypoints
+
+- Daily briefing:
+  - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh`
+- Intraday alerts:
+  - `/home/ec2-user/.openclaw/workspace/YoloInvest/run_options_alert.sh`
+
+## OpenClaw Cron Jobs
+
+Expected schedules:
+- Daily briefing: `0 6 * * *` in `America/Los_Angeles`
+- Intraday alerts: `*/10 6-13 * * 1-5` in `America/Los_Angeles`
+
+## Environment File
 
 Expected file:
-- `.env.YoloInvest`
+- `.env.market-briefing`
 
 Expected keys:
 - `TELEGRAM_BOT_TOKEN`
@@ -33,19 +46,11 @@ Expected keys:
 - optional: `LLM_API_BASE`
 - optional: `LLM_MODEL`
 
-## Operational notes
+## Operational Notes
 
-- `run_briefing.sh` is the canonical entrypoint
+- `run_briefing.sh` is the canonical daily-briefing entrypoint
+- `run_options_alert.sh` is the canonical intraday-alert entrypoint
 - `requirements.txt` is the canonical locked dependency set
 - `requirements.in` is only for maintaining top-level dependencies
-- Do not mix OpenClaw cron with a separate systemd timer for this project
-- Validate dependency lock consistency with `python check_requirements.py`
-
-## Useful commands
-
-```bash
-make deps
-make update-deps
-make run
-make ci-check
-```
+- do not mix OpenClaw cron with systemd timers for this project
+- validate lock consistency with `./venv/bin/python3 check_requirements.py`

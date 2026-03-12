@@ -40,6 +40,11 @@ Optional:
 - `LLM_API_BASE`
 - `LLM_MODEL`
 
+## Reference Docs
+
+- Architecture: `ARCHITECTURE.md`
+- Change log: `ReleaseNote.md`
+
 ## Start Commands
 
 Daily market briefing:

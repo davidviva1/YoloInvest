@@ -3,7 +3,7 @@
 Market Data Fetcher - 获取美股、加密货币、大宗商品数据
 """
 import json
-from fetchers import YahooFinanceFetcher
+from yoloinvest.common.fetchers import YahooFinanceFetcher
 
 
 def fetch_all_data():

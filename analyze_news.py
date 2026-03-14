@@ -2,7 +2,7 @@
 """
 Legacy wrapper - 使用当前分析器生成新闻分析结果
 """
-from main import YoloInvestApp
+from yoloinvest.market_briefing.app import YoloInvestApp
 
 
 if __name__ == "__main__":

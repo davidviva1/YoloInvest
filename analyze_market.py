@@ -4,7 +4,7 @@ Legacy wrapper - 使用当前生成器输出简报文件
 """
 import json
 
-from generators import ReportGenerator
+from yoloinvest.market_briefing.generators import ReportGenerator
 
 
 if __name__ == "__main__":

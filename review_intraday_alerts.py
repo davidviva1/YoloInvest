@@ -7,10 +7,10 @@ from collections import defaultdict
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
-
 import requests
 
-from yoloinvest.config import REQUEST_TIMEOUT, USER_AGENT, YAHOO_FINANCE_BASE
+from yoloinvest.common.sender import TelegramSender
+from yoloinvest.config import REQUEST_TIMEOUT, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, USER_AGENT, YAHOO_FINANCE_BASE
 
 STATE_FILE = Path('/tmp/options_alert_state.json')
 HISTORY_FILE = Path('/tmp/options_alert_history.jsonl')
@@ -142,6 +142,11 @@ def summarize_metrics(metrics: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def send_telegram(text: str) -> None:
+    sender = TelegramSender(bot_token=TELEGRAM_BOT_TOKEN, chat_id=TELEGRAM_CHAT_ID)
+    sender.send_long_message(text)
+
+
 def render_report(payload: dict[str, Any], history_rows: list[dict[str, Any]]) -> str:
     updated_at = payload.get('updated_at', 'unknown')
     alerts = payload.get('alerts', {})
@@ -208,6 +213,7 @@ def main() -> int:
     history_rows = load_history_for_today()
     report = render_report(payload, history_rows)
     REPORT_FILE.write_text(report)
+    send_telegram(report)
     print(report)
     return 0
 

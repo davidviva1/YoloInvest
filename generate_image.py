@@ -104,7 +104,7 @@ def create_professional_briefing(market_data, analysis, earnings, economic):
     draw = ImageDraw.Draw(img)
     
     # 加载中文字体
-    font_path = "/home/ec2-user/.openclaw/workspace/market-briefing/fonts/NotoSansCJK-Regular.ttc"
+    font_path = "/home/ec2-user/.openclaw/workspace/YoloInvest/fonts/NotoSansCJK-Regular.ttc"
     try:
         title_font = ImageFont.truetype(font_path, 56)
         header_font = ImageFont.truetype(font_path, 36)

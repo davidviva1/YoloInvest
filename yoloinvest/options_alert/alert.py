@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 import feedparser
 import requests
 
+from yoloinvest.common.sender import TelegramSender
 from yoloinvest.config import REQUEST_TIMEOUT, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, USER_AGENT, YAHOO_FINANCE_BASE
 
 ALERT_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS"]
@@ -275,14 +276,8 @@ def format_message(alerts: List[AlertCandidate]) -> str:
 
 
 def send_telegram(text: str) -> None:
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is not set")
-    response = requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-        json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"},
-        timeout=REQUEST_TIMEOUT,
-    )
-    response.raise_for_status()
+    sender = TelegramSender(bot_token=TELEGRAM_BOT_TOKEN, chat_id=TELEGRAM_CHAT_ID)
+    sender.send_long_message(text)
 
 
 def main() -> int:

@@ -54,7 +54,7 @@ NEWS_SOURCES: Dict[str, List[str]] = {
 }
 
 # ===== 重点分析股票 =====
-FOCUS_STOCKS = ["NVDA", "AVGO"]
+FOCUS_STOCKS = ["NVDA", "AVGO", "SPY", "QQQ", "TSLA"]
 
 # ===== 文件路径 =====
 OUTPUT_DIR = "/tmp"

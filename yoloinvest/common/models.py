@@ -14,6 +14,10 @@ class Quote:
     previous_close: float
     price_date: Optional[str] = None
     previous_close_date: Optional[str] = None
+    prev_day_high: Optional[float] = None
+    prev_day_low: Optional[float] = None
+    premarket_high: Optional[float] = None
+    premarket_low: Optional[float] = None
 
     @property
     def is_up(self) -> bool:

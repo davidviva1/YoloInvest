@@ -47,6 +47,52 @@ class YahooFinanceFetcher(DataFetcher):
             valid_volumes.append(volume)
         return dates, valid_closes, valid_volumes
 
+    @staticmethod
+    def _extract_high_low(result: Dict) -> Tuple[Optional[float], Optional[float]]:
+        """Extract high/low from the last trading day."""
+        quote_data = result.get("indicators", {}).get("quote", [{}])[0]
+        highs = quote_data.get("high", [])
+        lows = quote_data.get("low", [])
+        # Filter out None values and get last valid pair
+        valid_highs = [h for h in highs if h is not None]
+        valid_lows = [l for l in lows if l is not None]
+        high = valid_highs[-1] if valid_highs else None
+        low = valid_lows[-1] if valid_lows else None
+        return high, low
+
+    def _fetch_premarket(self, symbol: str) -> Tuple[Optional[float], Optional[float]]:
+        """Fetch premarket high/low for a symbol."""
+        try:
+            url = f"{YAHOO_FINANCE_BASE}/v8/finance/chart/{symbol}"
+            params = {"interval": "5m", "range": "1d", "includePrePost": "true"}
+            response = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+            data = response.json()
+            if "chart" not in data or not data["chart"].get("result"):
+                return None, None
+
+            result = data["chart"]["result"][0]
+            timestamps = result.get("timestamp", [])
+            quote_data = result.get("indicators", {}).get("quote", [{}])[0]
+            highs = quote_data.get("high", [])
+            lows = quote_data.get("low", [])
+
+            meta = result.get("meta", {})
+            regular_start = meta.get("currentTradingPeriod", {}).get("regular", {}).get("start", 0)
+
+            pre_highs = []
+            pre_lows = []
+            for ts, h, l in zip(timestamps, highs, lows):
+                if ts < regular_start and h is not None and l is not None:
+                    pre_highs.append(h)
+                    pre_lows.append(l)
+
+            if pre_highs and pre_lows:
+                return max(pre_highs), min(pre_lows)
+            return None, None
+        except Exception as exc:
+            print(f"Error fetching premarket for {symbol}: {exc}")
+            return None, None
+
     def fetch_quote(self, symbol: str) -> Optional[Quote]:
         try:
             url = f"{YAHOO_FINANCE_BASE}/v8/finance/chart/{symbol}"
@@ -75,6 +121,9 @@ class YahooFinanceFetcher(DataFetcher):
             else:
                 return None
 
+            # Extract previous day high/low
+            prev_day_high, prev_day_low = self._extract_high_low(result)
+
             change = price - previous_close
             change_pct = (change / previous_close * 100) if previous_close else 0
             return Quote(
@@ -86,6 +135,8 @@ class YahooFinanceFetcher(DataFetcher):
                 previous_close=previous_close,
                 price_date=price_date,
                 previous_close_date=previous_close_date,
+                prev_day_high=prev_day_high,
+                prev_day_low=prev_day_low,
             )
         except Exception as exc:
             print(f"Error fetching {symbol}: {exc}")
@@ -94,11 +145,17 @@ class YahooFinanceFetcher(DataFetcher):
     def fetch(self) -> Dict:
         result = {"timestamp": datetime.utcnow().isoformat(), "stocks": {}, "crypto": {}, "commodities": {}}
 
+        premarket_symbols = {"SPY", "QQQ"}
+
         for category, symbols in STOCKS.items():
             result["stocks"][category] = {}
             for symbol in symbols:
                 quote = self.fetch_quote(symbol)
                 if quote:
+                    if symbol in premarket_symbols:
+                        pm_high, pm_low = self._fetch_premarket(symbol)
+                        quote.premarket_high = pm_high
+                        quote.premarket_low = pm_low
                     result["stocks"][category][symbol] = quote.__dict__
 
         for crypto in CRYPTO_SYMBOLS:

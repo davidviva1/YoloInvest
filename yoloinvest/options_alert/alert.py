@@ -24,6 +24,7 @@ ALERT_SYMBOLS = [
     "METD",               # META 2x bear
     "FBL",                # META 2x bull (GraniteShares)
     "AMZU", "AMZD",       # AMZN 2x bull / 2x bear
+    "AVGX",               # AVGO 2x bull (Defiance)
     # 高流动性个股
     "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS",
 ]
@@ -61,7 +62,7 @@ class AlertCandidate:
         is_leveraged = self.symbol in {
             "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
             "NVDL", "NVDD", "NVDU", "TSLL", "TSLS", "TSLR",
-            "METD", "FBL", "AMZU", "AMZD",
+            "METD", "FBL", "AMZU", "AMZD", "AVGX",
         }
 
         # Day change scoring — 杠杆 ETF 用 2x 门槛
@@ -212,7 +213,7 @@ def filter_alerts(candidates: List[AlertCandidate]) -> List[AlertCandidate]:
         is_leveraged = candidate.symbol in {
             "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
             "NVDL", "NVDD", "NVDU", "TSLL", "TSLS", "TSLR",
-            "METD", "FBL", "AMZU", "AMZD",
+            "METD", "FBL", "AMZU", "AMZD", "AVGX",
         }
 
         # 杠杆 ETF 用更高的日内门槛

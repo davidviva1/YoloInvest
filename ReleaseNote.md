@@ -1,5 +1,14 @@
 # ReleaseNote
 
+## 2026-03-17
+
+- Fixed critical bug: `app.py` missing `if __name__ == "__main__"` block, causing `python3 -m yoloinvest.market_briefing.app` to import the module without executing `run()`. This meant cron-triggered briefings never re-fetched data and always sent the stale `/tmp/detailed.txt` cache.
+- Briefing title now correctly shows the send date (`datetime.now()`).
+- Calculation notes (`计算说明`) now dynamically reflect the actual trading dates (`price_date` / `previous_close_date`) from Yahoo Finance market data.
+- Added individual stock leveraged ETFs to alert symbols: NVDL, NVDD, NVDU, TSLL, TSLS, TSLR, METD, FBL, AMZU, AMZD.
+- Added AVGX (AVGO 2x bull) to alert symbols.
+- Options alert: lowered trigger thresholds, added ETF/index tickers, fixed volume ratio calculation.
+
 ## 2026-03-12
 
 - Renamed the project from `market-briefing` to `YoloInvest`.

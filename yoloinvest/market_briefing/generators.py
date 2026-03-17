@@ -52,8 +52,14 @@ class ReportGenerator:
             return date_str
 
     def generate_detailed(self, data: Dict) -> str:
-        today = datetime.now().strftime("%Y年%m月%d日")
-        lines = [f"📊 *{self.brand_name} 市场简报 - {today}*\n"]
+        market_data = data.get("market_data", {})
+        price_date, previous_date = self._extract_market_dates(market_data)
+        price_date_text = self._format_date(price_date)
+        previous_date_text = self._format_date(previous_date)
+
+        # Use the actual trading date from market data for the title
+        title_date = price_date_text if price_date else datetime.now().strftime("%Y年%m月%d日")
+        lines = [f"📊 *{self.brand_name} 市场简报 - {title_date}*\n"]
 
         if "analysis" in data:
             lines.append("📰 *新闻影响分析*")
@@ -77,7 +83,6 @@ class ReportGenerator:
                 lines.append(f"  • {event['date']}: {event['event']}")
             lines.append("\n" + "=" * 50 + "\n")
 
-        market_data = data.get("market_data", {})
         if market_data.get("crypto"):
             lines.append("💰 *加密货币市场*")
             for symbol, quote in market_data["crypto"].items():
@@ -96,10 +101,6 @@ class ReportGenerator:
                 for symbol, quote in stocks.items():
                     lines.append(self._quote_line(symbol, quote))
                 lines.append("")
-
-        price_date, previous_date = self._extract_market_dates(market_data)
-        price_date_text = self._format_date(price_date)
-        previous_date_text = self._format_date(previous_date)
 
         lines.append("=" * 50)
         lines.append("")

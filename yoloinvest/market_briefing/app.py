@@ -71,3 +71,7 @@ class YoloInvestApp:
     def _save_text(text: str, filepath: str):
         with open(filepath, "w") as f:
             f.write(text)
+
+
+if __name__ == "__main__":
+    YoloInvestApp().run()

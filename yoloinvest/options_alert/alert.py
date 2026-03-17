@@ -16,6 +16,14 @@ from yoloinvest.config import REQUEST_TIMEOUT, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT
 ALERT_SYMBOLS = [
     # 指数 ETF + 杠杆
     "SPY", "QQQ", "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
+    # 个股杠杆 ETF (2x bull & bear)
+    "NVDL", "NVDD",       # NVDA 2x bull / 2x bear
+    "NVDU",               # NVDA 2x bull (Direxion)
+    "TSLL", "TSLS",       # TSLA 2x bull / 1x bear
+    "TSLR",               # TSLA 2x bear (T-Rex)
+    "METD",               # META 2x bear
+    "FBL",                # META 2x bull (GraniteShares)
+    "AMZU", "AMZD",       # AMZN 2x bull / 2x bear
     # 高流动性个股
     "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS",
 ]
@@ -50,7 +58,11 @@ class AlertCandidate:
         abs_intraday = abs(self.intraday_move_pct)
 
         # 杠杆 ETF 门槛更高（日常波动就大），个股/指数 ETF 门槛更低
-        is_leveraged = self.symbol in {"TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO"}
+        is_leveraged = self.symbol in {
+            "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
+            "NVDL", "NVDD", "NVDU", "TSLL", "TSLS", "TSLR",
+            "METD", "FBL", "AMZU", "AMZD",
+        }
 
         # Day change scoring — 杠杆 ETF 用 2x 门槛
         day_thresholds = (8, 5, 3) if is_leveraged else (4, 2.5, 1.2)
@@ -197,7 +209,11 @@ def filter_alerts(candidates: List[AlertCandidate]) -> List[AlertCandidate]:
     for candidate in candidates:
         abs_day = abs(candidate.day_change_pct)
         abs_intraday = abs(candidate.intraday_move_pct)
-        is_leveraged = candidate.symbol in {"TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO"}
+        is_leveraged = candidate.symbol in {
+            "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
+            "NVDL", "NVDD", "NVDU", "TSLL", "TSLS", "TSLR",
+            "METD", "FBL", "AMZU", "AMZD",
+        }
 
         # 杠杆 ETF 用更高的日内门槛
         day_min = 3.0 if is_leveraged else 1.0

@@ -57,9 +57,8 @@ class ReportGenerator:
         price_date_text = self._format_date(price_date)
         previous_date_text = self._format_date(previous_date)
 
-        # Use the actual trading date from market data for the title
-        title_date = price_date_text if price_date else datetime.now().strftime("%Y年%m月%d日")
-        lines = [f"📊 *{self.brand_name} 市场简报 - {title_date}*\n"]
+        today = datetime.now().strftime("%Y年%m月%d日")
+        lines = [f"📊 *{self.brand_name} 市场简报 - {today}*\n"]
 
         if "analysis" in data:
             lines.append("📰 *新闻影响分析*")

@@ -13,11 +13,16 @@ import requests
 from yoloinvest.common.sender import TelegramSender
 from yoloinvest.config import REQUEST_TIMEOUT, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, USER_AGENT, YAHOO_FINANCE_BASE
 
-ALERT_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS"]
+ALERT_SYMBOLS = [
+    # 指数 ETF + 杠杆
+    "SPY", "QQQ", "TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO",
+    # 高流动性个股
+    "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AVGO", "MRVL", "ALAB", "NBIS",
+]
 STATE_FILE = Path("/tmp/options_alert_state.json")
 HISTORY_FILE = Path("/tmp/options_alert_history.jsonl")
 TECH_NEWS_FEEDS = [
-    "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,AVGO,MRVL,ALAB,NBIS&region=US&lang=en-US",
+    "https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,AVGO,MRVL,ALAB,NBIS,SPY,QQQ&region=US&lang=en-US",
     "https://www.cnbc.com/id/19854910/device/rss/rss.html",
 ]
 
@@ -44,33 +49,41 @@ class AlertCandidate:
         abs_day = abs(self.day_change_pct)
         abs_intraday = abs(self.intraday_move_pct)
 
-        if abs_day >= 5:
+        # 杠杆 ETF 门槛更高（日常波动就大），个股/指数 ETF 门槛更低
+        is_leveraged = self.symbol in {"TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO"}
+
+        # Day change scoring — 杠杆 ETF 用 2x 门槛
+        day_thresholds = (8, 5, 3) if is_leveraged else (4, 2.5, 1.2)
+        if abs_day >= day_thresholds[0]:
             score += 4.0
             reasons.append(f"day move {self.day_change_pct:+.2f}%")
-        elif abs_day >= 3.5:
+        elif abs_day >= day_thresholds[1]:
             score += 3.0
             reasons.append(f"day move {self.day_change_pct:+.2f}%")
-        elif abs_day >= 2.0:
+        elif abs_day >= day_thresholds[2]:
             score += 2.0
             reasons.append(f"day move {self.day_change_pct:+.2f}%")
 
-        if abs_intraday >= 3:
+        # Intraday move scoring
+        intra_thresholds = (4, 2.5, 1.5) if is_leveraged else (2, 1.2, 0.6)
+        if abs_intraday >= intra_thresholds[0]:
             score += 3.0
             reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
-        elif abs_intraday >= 2:
+        elif abs_intraday >= intra_thresholds[1]:
             score += 2.0
             reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
-        elif abs_intraday >= 1:
+        elif abs_intraday >= intra_thresholds[2]:
             score += 1.0
             reasons.append(f"move vs open {self.intraday_move_pct:+.2f}%")
 
-        if self.volume_ratio >= 3:
+        # Volume ratio scoring — 降低门槛
+        if self.volume_ratio >= 2.5:
             score += 3.0
             reasons.append(f"volume {self.volume_ratio:.2f}x")
-        elif self.volume_ratio >= 2:
+        elif self.volume_ratio >= 1.5:
             score += 2.0
             reasons.append(f"volume {self.volume_ratio:.2f}x")
-        elif self.volume_ratio >= 1.2:
+        elif self.volume_ratio >= 0.8:
             score += 1.0
             reasons.append(f"volume {self.volume_ratio:.2f}x")
 
@@ -84,9 +97,9 @@ class AlertCandidate:
 
         self.score = round(score, 2)
         self.trigger_reasons = reasons
-        if self.score >= 8:
+        if self.score >= 6:
             self.severity = "high"
-        elif self.score >= 5:
+        elif self.score >= 3.5:
             self.severity = "medium"
         else:
             self.severity = "low"
@@ -99,7 +112,7 @@ class AlertCandidate:
 
 def fetch_symbol_snapshot(symbol: str) -> Optional[AlertCandidate]:
     url = f"{YAHOO_FINANCE_BASE}/v8/finance/chart/{symbol}"
-    params = {"interval": "5m", "range": "2d", "includePrePost": "false"}
+    params = {"interval": "1d", "range": "5d", "includePrePost": "false"}
     response = requests.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
 
@@ -119,12 +132,16 @@ def fetch_symbol_snapshot(symbol: str) -> Optional[AlertCandidate]:
     regular_volume = meta.get("regularMarketVolume") or (volumes[-1] if volumes else 0)
     avg_volume = meta.get("averageDailyVolume3Month") or meta.get("averageDailyVolume10Day") or 0
 
-    if not price or not prev_close or not open_price or not avg_volume:
+    # Estimate avg volume from chart data if API doesn't provide it
+    if not avg_volume and len(volumes) >= 2:
+        avg_volume = int(sum(volumes[:-1]) / len(volumes[:-1]))
+
+    if not price or not prev_close:
         return None
 
     day_change_pct = ((price - prev_close) / prev_close) * 100 if prev_close else 0
     intraday_move_pct = ((price - open_price) / open_price) * 100 if open_price else 0
-    volume_ratio = regular_volume / avg_volume if avg_volume else 0
+    volume_ratio = regular_volume / avg_volume if avg_volume else 1.0
 
     return AlertCandidate(
         symbol=symbol,
@@ -180,17 +197,25 @@ def filter_alerts(candidates: List[AlertCandidate]) -> List[AlertCandidate]:
     for candidate in candidates:
         abs_day = abs(candidate.day_change_pct)
         abs_intraday = abs(candidate.intraday_move_pct)
-        if abs_day < 2.0:
+        is_leveraged = candidate.symbol in {"TQQQ", "SQQQ", "SPXL", "SPXS", "SOXL", "SOXS", "UPRO"}
+
+        # 杠杆 ETF 用更高的日内门槛
+        day_min = 3.0 if is_leveraged else 1.0
+        intra_min = 1.5 if is_leveraged else 0.5
+
+        if abs_day < day_min and abs_intraday < intra_min:
             continue
-        if abs_intraday < 1.0:
-            continue
-        if candidate.volume_ratio < 1.2:
-            continue
+        # medium/high 直接通过
         if candidate.severity in {"high", "medium"}:
             filtered.append(candidate)
             continue
-        if candidate.news_hits and candidate.score >= 4.0:
+        # low severity 但有新闻或 score >= 3 也通过
+        if candidate.news_hits and candidate.score >= 3.0:
             filtered.append(candidate)
+            continue
+        if candidate.score >= 3.5:
+            filtered.append(candidate)
+    return filtered
     return filtered
 
 
@@ -239,7 +264,12 @@ def is_escalated(alert: AlertCandidate, old: dict) -> bool:
 
     if severity_rank.get(alert.severity, 1) > severity_rank.get(old_severity, 1):
         return True
-    if alert.score >= old_score + 2.0:
+    # score 增加 1.5 就算升级（之前是 2.0）
+    if alert.score >= old_score + 1.5:
+        return True
+    # 方向反转也算新 alert
+    old_day_change = float(old.get("day_change_pct", 0))
+    if (alert.day_change_pct > 0) != (old_day_change > 0):
         return True
     return False
 

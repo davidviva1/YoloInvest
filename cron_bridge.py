@@ -9,13 +9,16 @@ from pathlib import Path
 COMMANDS = {
     "briefing": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_briefing.sh"],
     "alerts": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_options_alert.sh"],
-    "alert-review": ["/home/ec2-user/.openclaw/workspace/YoloInvest/venv/bin/python3", "/home/ec2-user/.openclaw/workspace/YoloInvest/review_intraday_alerts.py"],
+    "alert-review": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_alert_review.sh"],
+    "regime": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_market_regime.sh"],
+    "regime-confirm": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_market_regime.sh", "确认"],
 }
 
 
 def main() -> int:
+    valid = "|".join(COMMANDS.keys())
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:
-        print("Usage: cron_bridge.py [briefing|alerts|alert-review]", file=sys.stderr)
+        print(f"Usage: cron_bridge.py [{valid}]", file=sys.stderr)
         return 2
 
     command = COMMANDS[sys.argv[1]]

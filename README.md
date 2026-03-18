@@ -25,6 +25,11 @@ YoloInvest is a modular market intelligence project with two primary apps:
   - Analyzes opening range, ATR, VWAP slope, volume patterns, and OR breakout
   - Sends regime classification to War Room Telegram group
 
+- `yoloinvest.weekly_calendar`
+  - Pushes next week's economic calendar to the briefing Telegram group
+  - Runs every Sunday 8:00 PM Pacific
+  - Shows impact level (🔴/🟡), forecast, previous values, and critical event markers
+
 ## Quick Start
 
 ```bash
@@ -243,9 +248,10 @@ Canonical deployment model:
 - `.env.market-briefing` as the local secret file
 
 Current scheduled jobs:
-- Daily briefing: 6:00 AM America/Los_Angeles
-- Intraday alerts: every 10 minutes during 6:30 AM-1:00 PM America/Los_Angeles on weekdays
-- End-of-day intraday review: 1:10 PM America/Los_Angeles on weekdays
+- Daily briefing: 6:00 AM America/Los_Angeles (Mon-Fri)
+- Intraday alerts: every 10 minutes during 6:30 AM-1:00 PM America/Los_Angeles (Mon-Fri)
+- End-of-day intraday review: 1:10 PM America/Los_Angeles (Mon-Fri)
+- Weekly economic calendar: 8:00 PM America/Los_Angeles (Sunday)
 
 Detailed deployment notes are in `DEPLOYMENT.md`.
 
@@ -281,6 +287,7 @@ YoloInvest/
 ├── run_options_alert.sh
 ├── run_alert_review.sh
 ├── run_market_regime.sh
+├── run_weekly_calendar.sh
 ├── update_requirements.sh
 ├── check_requirements.py
 ├── .env.market-briefing.example
@@ -300,10 +307,13 @@ YoloInvest/
 │   ├── options_alert/
 │   │   ├── __init__.py
 │   │   └── alert.py
-│   └── market_regime/
+│   ├── market_regime/
+│   │   ├── __init__.py
+│   │   ├── regime.py
+│   │   └── cli.py
+│   └── weekly_calendar/
 │       ├── __init__.py
-│       ├── regime.py
-│       └── cli.py
+│       └── app.py
 └── fonts/
 ```
 

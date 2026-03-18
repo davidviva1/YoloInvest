@@ -9,6 +9,9 @@
 - Weekly economic calendar entries now display impact emoji (🔴 High / 🟡 Medium), forecast, and previous values.
 - AI analysis prompt updated to require prominent coverage of same-day critical events (e.g., FOMC rate decision) at the top of the macro analysis section.
 - Smart dedup between ForexFactory and Fed calendar prevents duplicate entries for the same event.
+- Market briefing cron restricted to weekdays only (Mon-Fri).
+- New module: `yoloinvest.weekly_calendar` — pushes next week's economic calendar to the briefing Telegram group every Sunday 8:00 PM Pacific.
+- Added `run_weekly_calendar.sh` runner and `cron_bridge.py` entry for `weekly-calendar`.
 
 ## 2026-03-17
 

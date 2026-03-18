@@ -155,7 +155,8 @@ Score 由 5 个维度累加，杠杆 ETF 和个股/指数 ETF 使用不同门槛
 
 ### 运行时间
 
-- 盘中扫描：每 10 分钟，6:30 AM - 1:00 PM Pacific（工作日）
+- 盘中扫描：每 10 分钟，7:00 AM - 1:00 PM Pacific（工作日）
+- 开盘前 30 分钟（6:30-7:00 AM）故意跳过，避免开盘噪音产生误报
 - 收盘复盘：1:10 PM Pacific（工作日）
 
 ### 数据源
@@ -247,11 +248,31 @@ Canonical deployment model:
 - no systemd timer duplication
 - `.env.market-briefing` as the local secret file
 
-Current scheduled jobs:
-- Daily briefing: 6:00 AM America/Los_Angeles (Mon-Fri)
-- Intraday alerts: every 10 minutes during 6:30 AM-1:00 PM America/Los_Angeles (Mon-Fri)
-- End-of-day intraday review: 1:10 PM America/Los_Angeles (Mon-Fri)
-- Weekly economic calendar: 8:00 PM America/Los_Angeles (Sunday)
+### 脚本一览
+
+| 脚本 | 用途 | 手动运行 |
+|------|------|----------|
+| `run_briefing.sh` | 每日市场简报（数据采集 → AI 分析 → Telegram 推送） | `./run_briefing.sh` |
+| `run_options_alert.sh` | 盘中异动扫描（价格/量/新闻 → 评分 → 推送） | `./run_options_alert.sh` |
+| `run_alert_review.sh` | 收盘复盘（当日 alert 命中率/方向/收益总结） | `./run_alert_review.sh` |
+| `run_market_regime.sh` | 市场结构判断（趋势日 vs 区间日） | `./run_market_regime.sh [初判\|确认]` |
+| `run_weekly_calendar.sh` | 下周经济日历推送（impact/预期/前值） | `./run_weekly_calendar.sh` |
+
+### 定时任务 (Cron)
+
+所有时间均为 America/Los_Angeles (Pacific Time)。
+
+| 名称 | 时间 | 频率 | 说明 |
+|------|------|------|------|
+| `yoloinvest-market-briefing-daily` | 6:00 AM | 周一至周五 | 每日市场简报 → 简报群 |
+| `yoloinvest-intraday-tech-alerts-core` | 7:00 AM - 12:59 PM 每 10 分钟 | 周一至周五 | 盘中异动扫描 → alert 群 |
+| `yoloinvest-intraday-tech-alerts-close` | 1:00 PM | 周一至周五 | 收盘前最后一次扫描 → alert 群 |
+| `yoloinvest-intraday-alert-review` | 1:10 PM | 周一至周五 | 收盘复盘报告 → alert 群 |
+| `yoloinvest-market-regime-initial` | 7:00 AM | 周一至周五 | 市场结构初判 → War Room 群 |
+| `yoloinvest-market-regime-confirm` | 9:00 AM | 周一至周五 | 市场结构确认 → War Room 群 |
+| `yoloinvest-weekly-calendar-sunday` | 8:00 PM | 周日 | 下周经济日历 → 简报群 |
+
+注：开盘前 30 分钟（6:30-7:00 AM）不扫描，避免开盘噪音误报。
 
 Detailed deployment notes are in `DEPLOYMENT.md`.
 

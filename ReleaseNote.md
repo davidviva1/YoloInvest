@@ -12,6 +12,8 @@
 - Market briefing cron restricted to weekdays only (Mon-Fri).
 - New module: `yoloinvest.weekly_calendar` — pushes next week's economic calendar to the briefing Telegram group every Sunday 8:00 PM Pacific.
 - Added `run_weekly_calendar.sh` runner and `cron_bridge.py` entry for `weekly-calendar`.
+- Removed pre-market alert scan (6:30-7:00 AM) to avoid opening noise false positives; intraday alerts now start at 7:00 AM.
+- README now includes full script reference table and cron schedule table.
 
 ## 2026-03-17
 

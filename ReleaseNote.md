@@ -1,5 +1,15 @@
 # ReleaseNote
 
+## 2026-03-18
+
+- Replaced unreliable economic calendar sources (Trading Economics RSS + Investing.com scraper) with ForexFactory weekly JSON API as primary source and Fed official press-release calendar (`federalreserve.gov/json/ne-press.json`) as supplementary source.
+- Economic calendar now includes impact level (High/Medium) and forecast/previous values for each event.
+- Added critical event detection: FOMC, Federal Funds Rate, CPI, PCE, GDP, Nonfarm Payrolls, and Fed Chair speeches are auto-tagged as critical.
+- Briefing report now shows a dedicated "🚨 今日重大事件" section at the top of the economic calendar when critical events fall on the briefing date.
+- Weekly economic calendar entries now display impact emoji (🔴 High / 🟡 Medium), forecast, and previous values.
+- AI analysis prompt updated to require prominent coverage of same-day critical events (e.g., FOMC rate decision) at the top of the macro analysis section.
+- Smart dedup between ForexFactory and Fed calendar prevents duplicate entries for the same event.
+
 ## 2026-03-17
 
 - Fixed critical bug: `app.py` missing `if __name__ == "__main__"` block, causing `python3 -m yoloinvest.market_briefing.app` to import the module without executing `run()`. This meant cron-triggered briefings never re-fetched data and always sent the stale `/tmp/detailed.txt` cache.

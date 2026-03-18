@@ -244,78 +244,126 @@ class EarningsCalendarFetcher(DataFetcher):
 
 
 class EconomicDataFetcher(DataFetcher):
-    """Fetch upcoming economic events from Trading Economics RSS or fallback."""
+    """Fetch upcoming economic events from ForexFactory JSON + Fed official calendar."""
+
+    # Events that should always be flagged as critical in the briefing
+    CRITICAL_KEYWORDS = [
+        "FOMC", "Federal Funds Rate", "Fed Chair", "Nonfarm Payrolls",
+        "Non-Farm", "CPI ", "Core CPI", "PCE ", "Core PCE", "GDP ",
+    ]
 
     @staticmethod
-    def _fetch_tradingeconomics_rss() -> List[Dict]:
-        """Try Trading Economics calendar RSS."""
+    def _fetch_forexfactory_calendar() -> List[Dict]:
+        """Primary source: ForexFactory weekly calendar JSON (free, reliable)."""
         try:
-            feed = feedparser.parse("https://tradingeconomics.com/rss/calendar.aspx?c=united+states&i=high")
+            resp = requests.get(
+                "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
             events: List[Dict] = []
-            for entry in feed.entries[:15]:
+            for item in data:
+                if item.get("country") != "USD":
+                    continue
+                impact = item.get("impact", "")
+                if impact not in ("High", "Medium"):
+                    continue
+                raw_date = item.get("date", "")
+                date_str = raw_date[:10] if raw_date else ""
                 events.append(
                     {
-                        "date": entry.get("published", "")[:10],
-                        "event": entry.get("title", ""),
-                        "importance": "High",
-                        "forecast": None,
-                        "previous": None,
-                    }
-                )
-            if events:
-                return events
-        except Exception as exc:
-            print(f"Trading Economics RSS failed: {exc}")
-        return []
-
-    @staticmethod
-    def _fetch_investing_calendar() -> List[Dict]:
-        """Fallback: scrape Investing.com economic calendar API."""
-        from datetime import timedelta
-
-        try:
-            today = datetime.utcnow()
-            end = today + timedelta(days=7)
-            url = "https://www.investing.com/economic-calendar/Service/getCalendarFilteredData"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "X-Requested-With": "XMLHttpRequest",
-            }
-            payload = {
-                "dateFrom": today.strftime("%Y-%m-%d"),
-                "dateTo": end.strftime("%Y-%m-%d"),
-                "country[]": [5],
-                "importance[]": [2, 3],
-                "limit": 30,
-            }
-            resp = requests.post(url, data=payload, headers=headers, timeout=15)
-            if resp.status_code != 200:
-                return []
-            # Response is HTML table rows; extract event names
-            import re
-
-            titles = re.findall(r'class="event"\s*[^>]*>([^<]+)<', resp.text)
-            dates = re.findall(r'class="date"\s*[^>]*>([^<]+)<', resp.text)
-            events: List[Dict] = []
-            for i, title in enumerate(titles[:15]):
-                events.append(
-                    {
-                        "date": dates[i].strip() if i < len(dates) else "",
-                        "event": title.strip(),
-                        "importance": "High",
-                        "forecast": None,
-                        "previous": None,
+                        "date": raw_date,
+                        "date_short": date_str,
+                        "event": item.get("title", ""),
+                        "impact": impact,
+                        "forecast": item.get("forecast") or None,
+                        "previous": item.get("previous") or None,
                     }
                 )
             return events
         except Exception as exc:
-            print(f"Investing.com calendar failed: {exc}")
+            print(f"ForexFactory calendar failed: {exc}")
             return []
 
+    @staticmethod
+    def _fetch_fed_calendar() -> List[Dict]:
+        """Supplementary: Fed official press-release calendar for FOMC / monetary policy."""
+        try:
+            import json as _json
+
+            resp = requests.get(
+                "https://www.federalreserve.gov/json/ne-press.json",
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = _json.loads(resp.content.decode("utf-8-sig"))
+            today_str = datetime.utcnow().strftime("%m/%d/%Y").lstrip("0").replace("/0", "/")
+            events: List[Dict] = []
+            for item in data:
+                raw = item.get("d", "")
+                if not raw:
+                    continue
+                # Only include Monetary Policy items within the next 7 days
+                if item.get("pt") != "Monetary Policy":
+                    continue
+                try:
+                    dt = datetime.strptime(raw, "%m/%d/%Y %I:%M:%S %p")
+                except ValueError:
+                    continue
+                diff = (dt - datetime.utcnow()).days
+                if -1 <= diff <= 7:
+                    events.append(
+                        {
+                            "date": dt.strftime("%Y-%m-%dT%H:%M:%S-04:00"),
+                            "date_short": dt.strftime("%Y-%m-%d"),
+                            "event": item.get("t", ""),
+                            "impact": "High",
+                            "forecast": None,
+                            "previous": None,
+                        }
+                    )
+            return events
+        except Exception as exc:
+            print(f"Fed calendar failed: {exc}")
+            return []
+
+    @classmethod
+    def _classify_critical(cls, events: List[Dict]) -> List[Dict]:
+        """Tag events that match critical keywords."""
+        for event in events:
+            title = event.get("event", "")
+            is_critical = any(kw.lower() in title.lower() for kw in cls.CRITICAL_KEYWORDS)
+            event["critical"] = is_critical or event.get("impact") == "High"
+        return events
+
     def fetch(self) -> Dict:
-        calendar = self._fetch_tradingeconomics_rss()
-        if not calendar:
-            calendar = self._fetch_investing_calendar()
+        calendar = self._fetch_forexfactory_calendar()
+        # Merge Fed official calendar (dedup: skip if same date and overlapping keywords)
+        fed_events = self._fetch_fed_calendar()
+        ff_by_date: Dict[str, List[str]] = {}
+        for e in calendar:
+            d = e.get("date_short", "")
+            ff_by_date.setdefault(d, []).append(e["event"].lower())
+        for fe in fed_events:
+            fe_date = fe.get("date_short", "")
+            fe_lower = fe["event"].lower()
+            fe_words = set(fe_lower.split())
+            existing = ff_by_date.get(fe_date, [])
+            # Skip if any existing event on the same date shares 2+ significant words
+            skip = False
+            for ex_title in existing:
+                common = fe_words & set(ex_title.split())
+                # Remove trivial words
+                common -= {"the", "a", "an", "and", "of", "from", "in", "for", "to"}
+                if len(common) >= 2:
+                    skip = True
+                    break
+            if not skip:
+                calendar.append(fe)
+        calendar = self._classify_critical(calendar)
+        # Sort by date
+        calendar.sort(key=lambda e: e.get("date", ""))
         return {
             "timestamp": datetime.utcnow().isoformat(),
             "indicators": {},

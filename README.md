@@ -9,6 +9,9 @@ YoloInvest is a modular market intelligence project with two primary apps:
 - `yoloinvest.market_briefing`
   - Generates the daily market briefing
   - Pulls market data, news, earnings, and economic calendar data
+  - Economic calendar sourced from ForexFactory JSON API (primary) + Fed official calendar (supplementary)
+  - Auto-detects critical events (FOMC, CPI, NFP, PCE, GDP) and highlights them in the briefing
+  - Shows impact level, forecast, and previous values for each economic event
   - Runs AI analysis and sends the final Telegram report
 
 - `yoloinvest.options_alert`

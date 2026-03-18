@@ -17,11 +17,29 @@ class Analyzer(ABC):
 class AINewsAnalyzer(Analyzer):
     def _build_prompt(self, news: Dict, market_data: Dict, economic_data: Dict | None = None) -> str:
         economic_section = ""
+        today_critical_section = ""
         if economic_data and economic_data.get("calendar"):
+            from datetime import datetime as _dt
+
+            today_str = _dt.now().strftime("%Y-%m-%d")
+            today_critical = [
+                e for e in economic_data["calendar"]
+                if e.get("date_short", e.get("date", "")[:10]) == today_str and e.get("critical")
+            ]
+            all_events = economic_data["calendar"]
+
+            if today_critical:
+                today_critical_section = f"""
+
+## ⚠️ 今日重大事件（必须重点分析）
+{json.dumps(today_critical, indent=2, ensure_ascii=False)}
+请在宏观影响分析的最开头，用醒目的方式说明今日有哪些重大事件、预期影响、以及交易者需要注意的时间点和风险。
+"""
+
             economic_section = f"""
 
-## 本周重要经济数据发布
-{json.dumps(economic_data['calendar'], indent=2, ensure_ascii=False)}
+## 本周重要经济数据发布（含 impact 级别和预测值）
+{json.dumps(all_events, indent=2, ensure_ascii=False)}
 """
 
         focus_stocks_text = "、".join(FOCUS_STOCKS)
@@ -32,10 +50,11 @@ class AINewsAnalyzer(Analyzer):
 
 ## 最新新闻
 {json.dumps(news, indent=2, ensure_ascii=False)}
+{today_critical_section}
 {economic_section}
 
 请提供：
-1. **宏观影响分析**：这些新闻和即将发布的经济数据对整体市场情绪的影响（看涨/看跌/中性）
+1. **宏观影响分析**：这些新闻和即将发布的经济数据对整体市场情绪的影响（看涨/看跌/中性）。如果今日有重大事件（如 FOMC 利率决议、CPI、非农等），必须在最开头醒目标注，并说明预期时间、市场预期、以及对盘中交易的影响。
 2. **板块影响**：科技、芯片、数据中心、电力/能源、稀土
 3. **重点个股分析**：必须包含 **{focus_stocks_text}**
    - 对于 SPY 和 QQQ，必须列出以下关键价位（从市场数据中提取）：

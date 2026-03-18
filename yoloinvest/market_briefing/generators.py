@@ -77,9 +77,40 @@ class ReportGenerator:
             lines.append("\n" + "=" * 50 + "\n")
 
         if data.get("economic_calendar"):
+            # Separate today's critical events from the rest
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            today_critical = [
+                e for e in data["economic_calendar"]
+                if e.get("date_short", e.get("date", "")[:10]) == today_str and e.get("critical")
+            ]
+            if today_critical:
+                lines.append("🚨 *今日重大事件*")
+                for event in today_critical:
+                    line = f"  🔴 {event['event']}"
+                    details = []
+                    if event.get("forecast"):
+                        details.append(f"预期: {event['forecast']}")
+                    if event.get("previous"):
+                        details.append(f"前值: {event['previous']}")
+                    if details:
+                        line += f" ({' | '.join(details)})"
+                    lines.append(line)
+                lines.append("")
+
             lines.append("📅 *本周重要经济数据*")
             for event in data["economic_calendar"]:
-                lines.append(f"  • {event['date']}: {event['event']}")
+                date_display = event.get("date_short", event.get("date", "")[:10])
+                impact = event.get("impact", "")
+                impact_emoji = "🔴" if impact == "High" else "🟡" if impact == "Medium" else "⚪"
+                line = f"  {impact_emoji} {date_display}: {event['event']}"
+                details = []
+                if event.get("forecast"):
+                    details.append(f"预期: {event['forecast']}")
+                if event.get("previous"):
+                    details.append(f"前值: {event['previous']}")
+                if details:
+                    line += f" ({' | '.join(details)})"
+                lines.append(line)
             lines.append("\n" + "=" * 50 + "\n")
 
         if market_data.get("crypto"):

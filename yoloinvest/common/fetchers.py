@@ -10,6 +10,7 @@ from yoloinvest.common.models import NewsItem, Quote
 from yoloinvest.config import (
     COMMODITIES,
     CRYPTO_SYMBOLS,
+    FUTURES_VIX,
     NEWS_SOURCES,
     REQUEST_TIMEOUT,
     STOCKS,
@@ -143,9 +144,15 @@ class YahooFinanceFetcher(DataFetcher):
             return None
 
     def fetch(self) -> Dict:
-        result = {"timestamp": datetime.utcnow().isoformat(), "stocks": {}, "crypto": {}, "commodities": {}}
+        result = {"timestamp": datetime.utcnow().isoformat(), "futures_vix": {}, "stocks": {}, "crypto": {}, "commodities": {}}
 
         premarket_symbols = {"SPY", "QQQ"}
+
+        # Futures & VIX (fetched first for freshest snapshot)
+        for name, symbol in FUTURES_VIX.items():
+            quote = self.fetch_quote(symbol)
+            if quote:
+                result["futures_vix"][name] = quote.__dict__
 
         for category, symbols in STOCKS.items():
             result["stocks"][category] = {}

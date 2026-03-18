@@ -60,6 +60,29 @@ class ReportGenerator:
         today = datetime.now().strftime("%Y年%m月%d日")
         lines = [f"📊 *{self.brand_name} 市场简报 - {today}*\n"]
 
+        # Futures & VIX — top of report for immediate sentiment read
+        if market_data.get("futures_vix"):
+            lines.append("📡 *盘前 Futures & VIX*")
+            for name, quote in market_data["futures_vix"].items():
+                emoji = "🟢" if quote.get("change", 0) >= 0 else "🔴"
+                price = quote.get("price", 0)
+                change_pct = quote.get("change_percent", 0)
+                if "VIX" in name:
+                    # VIX: show level + change, flag elevated levels
+                    vix_flag = ""
+                    if price >= 30:
+                        vix_flag = " 🚨 极度恐慌"
+                    elif price >= 25:
+                        vix_flag = " ⚠️ 恐慌偏高"
+                    elif price >= 20:
+                        vix_flag = " 📈 偏高"
+                    elif price <= 13:
+                        vix_flag = " 😴 极度平静"
+                    lines.append(f"  {emoji} *{name}*: {price:.2f} ({change_pct:+.2f}%){vix_flag}")
+                else:
+                    lines.append(f"  {emoji} *{name}*: {price:.2f} ({change_pct:+.2f}%)")
+            lines.append("")
+
         if "analysis" in data:
             lines.append("📰 *新闻影响分析*")
             lines.append(data["analysis"])

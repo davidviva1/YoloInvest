@@ -26,6 +26,13 @@ STOCKS: Dict[str, List[str]] = {
 
 CRYPTO_SYMBOLS = ["BTC", "ETH"]
 
+FUTURES_VIX: Dict[str, str] = {
+    "ES (S&P 500)": "ES=F",
+    "NQ (Nasdaq 100)": "NQ=F",
+    "YM (Dow 30)": "YM=F",
+    "VIX": "^VIX",
+}
+
 COMMODITIES: Dict[str, str] = {
     "原油": "CL=F",
     "黄金": "GC=F",

@@ -42,12 +42,22 @@ class AINewsAnalyzer(Analyzer):
 {json.dumps(all_events, indent=2, ensure_ascii=False)}
 """
 
+        futures_section = ""
+        futures_vix = market_data.get("futures_vix", {})
+        if futures_vix:
+            futures_section = f"""
+
+## 盘前 Futures & VIX（实时快照）
+{json.dumps(futures_vix, indent=2, ensure_ascii=False)}
+请在宏观影响分析中结合 futures 方向和 VIX 水平判断今日开盘情绪。VIX ≥ 25 表示恐慌偏高，≥ 30 极度恐慌，≤ 13 极度平静。
+"""
+
         focus_stocks_text = "、".join(FOCUS_STOCKS)
         return f"""你是一位资深的美股分析师。请分析以下新闻和经济数据对美股市场的影响。
 
 ## 当前市场数据
 {json.dumps(market_data, indent=2, ensure_ascii=False)}
-
+{futures_section}
 ## 最新新闻
 {json.dumps(news, indent=2, ensure_ascii=False)}
 {today_critical_section}

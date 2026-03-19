@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -305,7 +306,7 @@ def fresh_alerts(alerts: List[AlertCandidate], state: dict) -> List[AlertCandida
 
 
 def format_message(alerts: List[AlertCandidate]) -> str:
-    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(UTC).astimezone(ZoneInfo("America/Los_Angeles")).strftime("%Y-%m-%d %H:%M PT")
     lines = [f"🚨 *盘中异动预警 V2.1* ({now})", "", "范围：高流动性大型科技股", ""]
     for alert in sorted(alerts, key=lambda item: item.score, reverse=True):
         direction = "看涨异动" if alert.day_change_pct > 0 else "看跌异动"

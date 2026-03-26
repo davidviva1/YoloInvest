@@ -60,6 +60,29 @@ class ReportGenerator:
         today = datetime.now().strftime("%Y年%m月%d日")
         lines = [f"📊 *{self.brand_name} 市场简报 - {today}*\n"]
 
+        # Sentiment Dashboard — very top for instant mood read
+        sentiment = data.get("sentiment", {})
+        vix_data = sentiment.get("vix", {})
+        fng_data = sentiment.get("fear_greed", {})
+        sentiment_summary = sentiment.get("summary", "")
+
+        if vix_data or fng_data:
+            lines.append("🌡 *盘前情绪仪表盘*")
+            if vix_data:
+                vix_val = vix_data.get("current", "N/A")
+                vix_pct = vix_data.get("percentile_30d", "N/A")
+                vix_label = vix_data.get("label", "")
+                lines.append(f"  VIX: {vix_val}（近30日 {vix_pct:.0f}% 分位，{vix_label}）")
+            if fng_data:
+                fng_score = fng_data.get("score", "N/A")
+                fng_rating_cn = fng_data.get("rating_cn", "")
+                fng_prev = fng_data.get("previous_close", "")
+                fng_week = fng_data.get("previous_1_week", "")
+                lines.append(f"  Fear & Greed: {fng_score} / {fng_rating_cn}（昨日 {fng_prev}，上周 {fng_week}）")
+            if sentiment_summary:
+                lines.append(f"  → {sentiment_summary}")
+            lines.append("")
+
         # Futures & VIX — top of report for immediate sentiment read
         if market_data.get("futures_vix"):
             lines.append("📡 *盘前 Futures & VIX*")

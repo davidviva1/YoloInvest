@@ -250,6 +250,114 @@ class EarningsCalendarFetcher(DataFetcher):
             return []
 
 
+class SentimentFetcher(DataFetcher):
+    """Fetch market sentiment indicators: VIX 30-day percentile and CNN Fear & Greed Index."""
+
+    FNG_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    FNG_HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://edition.cnn.com/",
+    }
+
+    FNG_LABELS = {
+        "extreme fear": "极度恐惧",
+        "fear": "恐惧",
+        "neutral": "中性",
+        "greed": "贪婪",
+        "extreme greed": "极度贪婪",
+    }
+
+    def _fetch_vix_percentile(self) -> Dict:
+        """Fetch VIX current value and 30-day percentile via yfinance."""
+        try:
+            import yfinance as yf
+            import numpy as np
+
+            vix = yf.Ticker("^VIX")
+            hist = vix.history(period="1mo")
+            if hist.empty:
+                return {}
+
+            current = float(hist["Close"].iloc[-1])
+            closes = hist["Close"].values
+            percentile = float((closes < current).sum() / len(closes) * 100)
+            low_30d = float(np.min(closes))
+            high_30d = float(np.max(closes))
+
+            # Classify
+            if current >= 30:
+                vix_label = "极度恐慌"
+            elif current >= 25:
+                vix_label = "恐慌偏高"
+            elif current >= 20:
+                vix_label = "偏高"
+            elif current <= 13:
+                vix_label = "极度平静"
+            else:
+                vix_label = "正常"
+
+            return {
+                "current": round(current, 2),
+                "percentile_30d": round(percentile, 0),
+                "low_30d": round(low_30d, 2),
+                "high_30d": round(high_30d, 2),
+                "label": vix_label,
+            }
+        except Exception as exc:
+            print(f"Error fetching VIX percentile: {exc}")
+            return {}
+
+    def _fetch_fear_greed(self) -> Dict:
+        """Fetch CNN Fear & Greed Index."""
+        try:
+            resp = requests.get(self.FNG_URL, headers=self.FNG_HEADERS, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            fg = data.get("fear_and_greed", {})
+            score = fg.get("score")
+            rating = fg.get("rating", "")
+            if score is None:
+                return {}
+            return {
+                "score": round(score, 1),
+                "rating": rating,
+                "rating_cn": self.FNG_LABELS.get(rating, rating),
+                "previous_close": round(fg.get("previous_close", 0), 1),
+                "previous_1_week": round(fg.get("previous_1_week", 0), 1),
+                "previous_1_month": round(fg.get("previous_1_month", 0), 1),
+            }
+        except Exception as exc:
+            print(f"Error fetching Fear & Greed Index: {exc}")
+            return {}
+
+    def fetch(self) -> Dict:
+        vix = self._fetch_vix_percentile()
+        fng = self._fetch_fear_greed()
+
+        # Generate sentiment summary
+        summary = ""
+        if vix and fng:
+            vix_val = vix.get("current", 0)
+            fng_score = fng.get("score", 50)
+            if vix_val >= 25 and fng_score < 30:
+                summary = "市场情绪极度恐慌，注意恐慌性抛售和假突破风险"
+            elif vix_val >= 25 or fng_score < 30:
+                summary = "市场情绪偏谨慎，注意假突破风险"
+            elif vix_val <= 15 and fng_score > 70:
+                summary = "市场情绪过度乐观，注意追高风险"
+            elif fng_score > 60:
+                summary = "市场情绪偏乐观，趋势可能延续"
+            else:
+                summary = "市场情绪中性，关注方向选择"
+
+        return {
+            "vix": vix,
+            "fear_greed": fng,
+            "summary": summary,
+        }
+
+
 class EconomicDataFetcher(DataFetcher):
     """Fetch upcoming economic events from ForexFactory JSON + Fed official calendar."""
 

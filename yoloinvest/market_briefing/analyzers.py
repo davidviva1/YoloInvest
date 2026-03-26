@@ -100,7 +100,7 @@ class AINewsAnalyzer(Analyzer):
                     "max_tokens": 2000,
                     "messages": [{"role": "user", "content": prompt}],
                 },
-                timeout=60,
+                timeout=120,
             )
             response.raise_for_status()
             result = response.json()

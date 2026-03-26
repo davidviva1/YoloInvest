@@ -13,6 +13,7 @@ COMMANDS = {
     "regime": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_market_regime.sh"],
     "regime-confirm": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_market_regime.sh", "确认"],
     "weekly-calendar": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_weekly_calendar.sh"],
+    "swing-alert": ["/home/ec2-user/.openclaw/workspace/YoloInvest/run_swing_alert.sh"],
 }
 
 

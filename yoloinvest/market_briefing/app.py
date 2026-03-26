@@ -2,8 +2,8 @@
 import json
 from typing import Dict
 
-from yoloinvest.common.fetchers import EconomicDataFetcher, EarningsCalendarFetcher, RSSNewsFetcher, YahooFinanceFetcher
-from yoloinvest.config import ANALYSIS_FILE, DETAILED_FILE, EARNINGS_FILE, ECONOMIC_FILE, MARKET_DATA_FILE, NEWS_FILE
+from yoloinvest.common.fetchers import EconomicDataFetcher, EarningsCalendarFetcher, RSSNewsFetcher, SentimentFetcher, YahooFinanceFetcher
+from yoloinvest.config import ANALYSIS_FILE, DETAILED_FILE, EARNINGS_FILE, ECONOMIC_FILE, MARKET_DATA_FILE, NEWS_FILE, SENTIMENT_FILE
 from yoloinvest.market_briefing.analyzers import AINewsAnalyzer
 from yoloinvest.market_briefing.generators import ReportGenerator
 
@@ -14,6 +14,7 @@ class YoloInvestApp:
         self.news_fetcher = RSSNewsFetcher()
         self.earnings_fetcher = EarningsCalendarFetcher()
         self.economic_fetcher = EconomicDataFetcher()
+        self.sentiment_fetcher = SentimentFetcher()
         self.analyzer = AINewsAnalyzer()
         self.generator = ReportGenerator(brand_name="YoloInvest")
 
@@ -34,7 +35,11 @@ class YoloInvestApp:
         economic = self.economic_fetcher.fetch()
         self._save_json(economic, ECONOMIC_FILE)
 
-        return {"market_data": market_data, "news": news, "earnings": earnings, "economic_data": economic}
+        print("Fetching sentiment data...")
+        sentiment = self.sentiment_fetcher.fetch()
+        self._save_json(sentiment, SENTIMENT_FILE)
+
+        return {"market_data": market_data, "news": news, "earnings": earnings, "economic_data": economic, "sentiment": sentiment}
 
     def analyze_data(self, data: Dict) -> str:
         print("Analyzing news impact with AI...")
@@ -49,6 +54,7 @@ class YoloInvestApp:
             "analysis": analysis,
             "earnings": data["earnings"],
             "economic_calendar": data["economic_data"].get("calendar", []),
+            "sentiment": data.get("sentiment", {}),
         }
         detailed = self.generator.generate_detailed(report_data)
         self._save_text(detailed, DETAILED_FILE)

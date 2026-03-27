@@ -11,7 +11,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
-LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.tabcode.cc/claude/kiropower")
+LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api2.tabcode.cc/claude/kiropower")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "claude-sonnet-4-5-20250929")
 

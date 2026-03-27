@@ -146,8 +146,6 @@ class AINewsAnalyzer(Analyzer):
         try:
             if not LLM_API_KEY:
                 raise RuntimeError("LLM_API_KEY is not set")
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             response = requests.post(
                 f"{LLM_API_BASE}/v1/messages",
                 headers={
@@ -161,7 +159,6 @@ class AINewsAnalyzer(Analyzer):
                     "messages": [{"role": "user", "content": prompt}],
                 },
                 timeout=120,
-                verify=False,  # TODO: remove after api.tabcode.cc renews SSL cert (expired 2026-03-26)
             )
             response.raise_for_status()
             result = response.json()

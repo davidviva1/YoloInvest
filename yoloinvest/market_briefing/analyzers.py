@@ -15,69 +15,127 @@ class Analyzer(ABC):
 
 
 class AINewsAnalyzer(Analyzer):
+
+    @staticmethod
+    def _slim_market_data(market_data: Dict) -> Dict:
+        """Strip market_data to only the fields the LLM needs."""
+        slim = {"timestamp": market_data.get("timestamp", "")}
+
+        # Futures & VIX — keep full (small)
+        if market_data.get("futures_vix"):
+            slim["futures_vix"] = {
+                name: {k: q[k] for k in ("symbol", "price", "change_percent") if k in q}
+                for name, q in market_data["futures_vix"].items()
+            }
+
+        # Stocks — only price, change%, and key levels for focus stocks
+        focus = set(FOCUS_STOCKS)
+        if market_data.get("stocks"):
+            slim["stocks"] = {}
+            for category, stocks in market_data["stocks"].items():
+                cat_slim = {}
+                for sym, q in stocks.items():
+                    entry = {"price": q.get("price"), "chg%": q.get("change_percent")}
+                    if sym in focus:
+                        for k in ("previous_close", "prev_day_high", "prev_day_low",
+                                  "premarket_high", "premarket_low"):
+                            if q.get(k) is not None:
+                                entry[k] = q[k]
+                    cat_slim[sym] = entry
+                slim["stocks"][category] = cat_slim
+
+        # Crypto — price + change%
+        if market_data.get("crypto"):
+            slim["crypto"] = {
+                sym: {"price": q.get("price"), "chg%": q.get("change_percent")}
+                for sym, q in market_data["crypto"].items()
+            }
+
+        # Commodities — price + change%
+        if market_data.get("commodities"):
+            slim["commodities"] = {
+                name: {"price": q.get("price"), "chg%": q.get("change_percent")}
+                for name, q in market_data["commodities"].items()
+            }
+
+        return slim
+
+    @staticmethod
+    def _slim_news(news: Dict) -> str:
+        """Flatten news to title-only bullets grouped by category."""
+        lines = []
+        for category, items in news.items():
+            if not items:
+                continue
+            titles = [it.get("title", "") for it in items if it.get("title")]
+            if titles:
+                lines.append(f"[{category}]")
+                for t in titles:
+                    lines.append(f"- {t}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _slim_economic(economic_data: Dict) -> tuple[str, str]:
+        """Return (today_critical_text, calendar_text) as compact strings."""
+        from datetime import datetime as _dt
+        calendar = economic_data.get("calendar", [])
+        if not calendar:
+            return "", ""
+
+        today_str = _dt.now().strftime("%Y-%m-%d")
+        critical_lines = []
+        cal_lines = []
+        for e in calendar:
+            date_s = e.get("date_short", e.get("date", "")[:10])
+            impact = e.get("impact", "")
+            evt = e.get("event", "")
+            parts = [f"{date_s} [{impact}] {evt}"]
+            if e.get("forecast"):
+                parts.append(f"预期:{e['forecast']}")
+            if e.get("previous"):
+                parts.append(f"前值:{e['previous']}")
+            line = " | ".join(parts)
+            cal_lines.append(line)
+            if date_s == today_str and e.get("critical"):
+                critical_lines.append(line)
+        return "\n".join(critical_lines), "\n".join(cal_lines)
+
     def _build_prompt(self, news: Dict, market_data: Dict, economic_data: Dict | None = None) -> str:
-        economic_section = ""
-        today_critical_section = ""
-        if economic_data and economic_data.get("calendar"):
-            from datetime import datetime as _dt
+        slim_mkt = json.dumps(self._slim_market_data(market_data), ensure_ascii=False)
+        slim_news = self._slim_news(news)
+        today_critical, eco_cal = self._slim_economic(economic_data) if economic_data else ("", "")
 
-            today_str = _dt.now().strftime("%Y-%m-%d")
-            today_critical = [
-                e for e in economic_data["calendar"]
-                if e.get("date_short", e.get("date", "")[:10]) == today_str and e.get("critical")
-            ]
-            all_events = economic_data["calendar"]
-
-            if today_critical:
-                today_critical_section = f"""
-
-## ⚠️ 今日重大事件（必须重点分析）
-{json.dumps(today_critical, indent=2, ensure_ascii=False)}
-请在宏观影响分析的最开头，用醒目的方式说明今日有哪些重大事件、预期影响、以及交易者需要注意的时间点和风险。
+        today_block = ""
+        if today_critical:
+            today_block = f"""
+⚠️ 今日重大事件:
+{today_critical}
 """
 
-            economic_section = f"""
-
-## 本周重要经济数据发布（含 impact 级别和预测值）
-{json.dumps(all_events, indent=2, ensure_ascii=False)}
-"""
-
-        futures_section = ""
-        futures_vix = market_data.get("futures_vix", {})
-        if futures_vix:
-            futures_section = f"""
-
-## 盘前 Futures & VIX（实时快照）
-{json.dumps(futures_vix, indent=2, ensure_ascii=False)}
-请在宏观影响分析中结合 futures 方向和 VIX 水平判断今日开盘情绪。VIX ≥ 25 表示恐慌偏高，≥ 30 极度恐慌，≤ 13 极度平静。
+        eco_block = ""
+        if eco_cal:
+            eco_block = f"""
+本周经济日历:
+{eco_cal}
 """
 
         focus_stocks_text = "、".join(FOCUS_STOCKS)
-        return f"""你是一位资深的美股分析师。请分析以下新闻和经济数据对美股市场的影响。
+        return f"""你是资深美股分析师。根据以下数据分析市场影响。
 
-## 当前市场数据
-{json.dumps(market_data, indent=2, ensure_ascii=False)}
-{futures_section}
-## 最新新闻
-{json.dumps(news, indent=2, ensure_ascii=False)}
-{today_critical_section}
-{economic_section}
+## 市场数据
+{slim_mkt}
 
-请提供：
-1. **宏观影响分析**：这些新闻和即将发布的经济数据对整体市场情绪的影响（看涨/看跌/中性）。如果今日有重大事件（如 FOMC 利率决议、CPI、非农等），必须在最开头醒目标注，并说明预期时间、市场预期、以及对盘中交易的影响。
-2. **板块影响**：科技、芯片、数据中心、电力/能源、稀土
-3. **重点个股分析**：必须包含 **{focus_stocks_text}**
-   - 对于 SPY 和 QQQ，必须列出以下关键价位（从市场数据中提取）：
-     • 前日收盘价 (previous_close)
-     • 盘前高点 (premarket_high)
-     • 盘前低点 (premarket_low)
-     • 昨日高点 (prev_day_high)
-     • 昨日低点 (prev_day_low)
-   - 对于其他重点个股，给出技术面关键价位和交易建议
-4. **加密货币影响**：BTC/ETH 的潜在走势
-5. **大宗商品影响**：原油、黄金、铜、白银、天然气的潜在走势
+## 新闻标题
+{slim_news}
+{today_block}{eco_block}
+## 分析要求
+1. **宏观影响**（看涨/看跌/中性）。今日若有重大事件（FOMC/CPI/非农等）须醒目标注时间、预期和风险。结合 futures 方向和 VIX（≥25恐慌偏高，≥30极度恐慌，≤13极度平静）判断开盘情绪。
+2. **板块影响**：科技、芯片、数据中心、电力/能源、稀土（各2-3句）
+3. **重点个股 {focus_stocks_text}**：SPY/QQQ 须列出 previous_close / premarket_high / premarket_low / prev_day_high / prev_day_low；其他个股给关键价位和交易建议
+4. **加密货币**：BTC/ETH 走势
+5. **大宗商品**：原油、黄金、铜、白银、天然气走势
 
-请用简洁、专业的语言，每个板块 2-3 句话即可。"""
+简洁专业，直接输出分析。"""
 
     def analyze(self, data: Dict) -> str:
         news = data.get("news", {})
@@ -88,6 +146,8 @@ class AINewsAnalyzer(Analyzer):
         try:
             if not LLM_API_KEY:
                 raise RuntimeError("LLM_API_KEY is not set")
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             response = requests.post(
                 f"{LLM_API_BASE}/v1/messages",
                 headers={
@@ -101,6 +161,7 @@ class AINewsAnalyzer(Analyzer):
                     "messages": [{"role": "user", "content": prompt}],
                 },
                 timeout=120,
+                verify=False,  # TODO: remove after api.tabcode.cc renews SSL cert (expired 2026-03-26)
             )
             response.raise_for_status()
             result = response.json()

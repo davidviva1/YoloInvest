@@ -1,6 +1,7 @@
 """Report generators for the market briefing module."""
+import calendar
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Iterable, Optional, Tuple
 
 
@@ -51,6 +52,57 @@ class ReportGenerator:
         except ValueError:
             return date_str
 
+    @staticmethod
+    def _get_third_friday(year: int, month: int) -> datetime:
+        """Return the third Friday of the given month."""
+        # Find the first day of the month and walk to the first Friday
+        c = calendar.Calendar(firstweekday=calendar.MONDAY)
+        fridays = [
+            d for d in c.itermonthdays2(year, month)
+            if d[0] != 0 and d[1] == calendar.FRIDAY
+        ]
+        # third Friday is index 2
+        third_friday_day = fridays[2][0]
+        return datetime(year, month, third_friday_day)
+
+    @staticmethod
+    def _quad_witching_reminder(today: datetime) -> Optional[str]:
+        """Return a quad-witching reminder string if today is within the
+        witching week (Mon-Fri of the third-Friday week) of Mar/Jun/Sep/Dec,
+        or None otherwise."""
+        witching_months = (3, 6, 9, 12)
+        for month in witching_months:
+            # Check current year and possibly next year's first quarter
+            for year in (today.year, today.year + 1):
+                if year == today.year + 1 and month > 3:
+                    break
+                third_fri = ReportGenerator._get_third_friday(year, month)
+                # Monday of that week
+                week_start = third_fri - timedelta(days=third_fri.weekday())
+                week_end = week_start + timedelta(days=4)  # Friday
+                today_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+                if week_start <= today_date <= week_end:
+                    days_until = (third_fri - today_date).days
+                    date_str = third_fri.strftime("%m/%d")
+                    if days_until == 0:
+                        return (
+                            f"🧙‍♂️ *四巫日 (Quad Witching) — 今天 {date_str}！*\n"
+                            "  股指期货、股指期权、个股期权、个股期货同时到期\n"
+                            "  ⚠️ 预计成交量大幅放大，盘中波动加剧，尾盘 rebalance 资金流可能引发剧烈行情\n"
+                            "  💡 注意流动性陷阱，别追突破，控制仓位"
+                        )
+                    elif days_until > 0:
+                        return (
+                            f"🧙‍♂️ *四巫日 (Quad Witching) 本周五 {date_str}*\n"
+                            f"  距四巫日还有 {days_until} 天\n"
+                            "  股指期货、股指期权、个股期权、个股期货将同时到期\n"
+                            "  💡 本周临近到期，gamma exposure 影响加大，注意 pin risk 和异常波动"
+                        )
+                    else:
+                        # Past the Friday but still in the week (shouldn't happen on weekdays)
+                        return None
+        return None
+
     def generate_detailed(self, data: Dict) -> str:
         market_data = data.get("market_data", {})
         price_date, previous_date = self._extract_market_dates(market_data)
@@ -81,6 +133,12 @@ class ReportGenerator:
                 lines.append(f"  Fear & Greed: {fng_score} / {fng_rating_cn}（昨日 {fng_prev}，上周 {fng_week}）")
             if sentiment_summary:
                 lines.append(f"  → {sentiment_summary}")
+            lines.append("")
+
+        # Quad Witching reminder — prominent placement when in witching week
+        witching_note = self._quad_witching_reminder(datetime.now())
+        if witching_note:
+            lines.append(witching_note)
             lines.append("")
 
         # Futures & VIX — top of report for immediate sentiment read

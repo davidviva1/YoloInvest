@@ -4,6 +4,7 @@ from typing import Dict
 import json
 
 import requests
+import time
 
 from yoloinvest.config import FOCUS_STOCKS, LLM_API_BASE, LLM_API_KEY, LLM_MODEL
 
@@ -143,26 +144,46 @@ class AINewsAnalyzer(Analyzer):
         economic_data = data.get("economic_data")
         prompt = self._build_prompt(news, market_data, economic_data)
 
-        try:
-            if not LLM_API_KEY:
-                raise RuntimeError("LLM_API_KEY is not set")
-            response = requests.post(
-                f"{LLM_API_BASE}/v1/messages",
-                headers={
-                    "x-api-key": LLM_API_KEY,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": LLM_MODEL,
-                    "max_tokens": 2000,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-                timeout=120,
-            )
-            response.raise_for_status()
-            result = response.json()
-            return result["content"][0]["text"]
-        except Exception as exc:
-            print(f"Error calling LLM API: {exc}")
+        if not LLM_API_KEY:
+            print("Error: LLM_API_KEY is not set")
             return "新闻分析暂时不可用"
+
+        max_retries = 1
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    f"{LLM_API_BASE}/v1/messages",
+                    headers={
+                        "Authorization": "Bearer " + LLM_API_KEY,
+                        "AI-Resource": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": LLM_MODEL,
+                        "max_tokens": 2000,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                    timeout=120,
+                )
+                if response.status_code == 503 and attempt < max_retries - 1:
+                    wait = 2 ** attempt
+                    print(f"API 503, retrying in {wait}s (attempt {attempt+1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                response.raise_for_status()
+                result = response.json()
+                # Find first text block (skip thinking blocks from MiniMax)
+                for block in result.get("content", []):
+                    if block.get("type") == "text":
+                        return block["text"]
+                return "新闻分析暂时不可用"
+            except Exception as exc:
+                last_error = exc
+                if attempt < max_retries - 1:
+                    wait = 2 ** attempt
+                    print(f"API error: {exc}, retrying in {wait}s (attempt {attempt+1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                print(f"Error calling LLM API after {max_retries} attempts: {exc}")
+                return "新闻分析暂时不可用"

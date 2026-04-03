@@ -1,5 +1,19 @@
 # ReleaseNote
 
+## 2026-04-03
+
+- Added NYSE market holiday guard to `cron_bridge.py`: all scheduled tasks now silently skip on US equity market holidays (weekends + NYSE-observed holidays). No manual update needed — holiday dates are computed locally from the `holidays` Python package, covering Good Friday, federal holidays, and observed dates through 2027+.
+- `is_market_closed()` checks weekend (Sat/Sun) + NYSE holiday set per run, so each cron trigger re-evaluates independently.
+- Added `SPY` and `QQQ` to FOCUS_STOCKS under a new "主要指数" category.
+- Switched LLM API authentication from `x-api-key` header to `Authorization: Bearer` format for compatibility with current MiniMax endpoint.
+- Added retry logic to `AINewsAnalyzer` with exponential backoff on 503 errors.
+- Fixed MiniMax text block parsing: now skips non-text content blocks (e.g. thinking blocks) in LLM response.
+- Updated `.env.market-briefing.example` LLM_API_BASE to `api.minimax.io/anthropic`.
+- Added quad witching (四巫日) reminder to market briefing.
+- Slimmed LLM prompt from ~13k to ~2.3k tokens (-83%).
+- Added sentiment dashboard (VIX percentile + Fear & Greed index) to briefing.
+- Alert title now shows Pacific Time (PT) instead of UTC.
+
 ## 2026-03-18
 
 - Replaced unreliable economic calendar sources (Trading Economics RSS + Investing.com scraper) with ForexFactory weekly JSON API as primary source and Fed official press-release calendar (`federalreserve.gov/json/ne-press.json`) as supplementary source.
